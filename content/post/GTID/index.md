@@ -1,16 +1,20 @@
 ---
-title: "GTID 介紹"
+title: GTID
+description: 介紹 MySQL GTID Replication
 slug: gtid
 date: 2025-03-27T12:00:00+08:00
 categories:
-   - MySQL
+- MySQL
+tags:
+- Replication
+weight: 1       # You can add weight to some posts to override the default sorting (date descending)
 ---
 
 GTID 的全名是 Global Transaction identifier, MySQL 會為每一個 DML/DDL 操作都分配一個在整個 replicaion topology 都唯一的 GTID。
 
 在 replication 環境中，master 可以直接透過 GTID 定位發送 binlog 給 slave 不再需要指定 binlog 名稱和 postition 在同步上更為方便。此外 Slave 還會保留從 Master 同步過來的 Transaction 相同的 GTID，並持久化到 mysql.gtid_executed，搭配上 GTID 的自動跳過功能，保證了相同 GTID 的 Transaction 在同一個 instance 中只會執行一次，更加有助於 Replication 的一致性。
 
-# GTID 組成
+## GTID 組成
 
 GTID 的組成為 source_id:transaction_id，範例 `3E11FA47-71CA-11E1-9E33-C80AA9429562:23`
 
@@ -25,7 +29,7 @@ GTID 的組成為 source_id:transaction_id，範例 `3E11FA47-71CA-11E1-9E33-C80
   在源碼中稱為 gno 會在 Transaction 進入 Flush 階段中生成，MySQL 內部維護了一個全局變量 next_free_gno 的計數來生成 gno。
 
 
-# GTID Life cycle
+## GTID Life cycle
 
 以下以 MySQL 8.0.17 以上來說明
 
@@ -64,7 +68,7 @@ GTID 的組成為 source_id:transaction_id，範例 `3E11FA47-71CA-11E1-9E33-C80
 
 從 8.0.17 開始為了實現 clone 功能 ([WL#9211](https://dev.mysql.com/worklog/task/?id=9211)) 更改了此行為，不論如何設置 mysql.gtid_executed 表總是和對應的 Event 一起 commit (rollback) 。
 
-# mysql.gtid_execute 表
+## mysql.gtid_execute 表
 
 設計的初衷是用於當 slave 未開啟 binlog 或者是 `log_slave_update = OFF` 時，或者是當 binlog 丟失時能夠保留 GTID 的狀態，因此會在這張表中持久化已經執行的 GTID SET。
 
@@ -131,7 +135,7 @@ PROCESSLIST_COMMAND: Daemon
        THREAD_OS_ID: 18677
 ```
 
-# 系統變量 gtid_executed 和 gtid_purged 的初始化與更新
+## 系統變量 gtid_executed 和 gtid_purged 的初始化與更新
 
 ### 初始化
 
@@ -190,11 +194,11 @@ gtid_executed 和 gtid_purged 這 2 個系統變量在 MySQL 啟動時會透過 
     - 在 MySQL 啟動時初始化。
     - Master 未開啟 binlog 時，因為不會產生 GTID，因此不會有任何更新。
 
-# GTID 相關變量
+## GTID 相關變量
 
-### [gtid_mode](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_mode)
+### gtid_mode
 
-![gtid_mode](images/gtid-mode.jpg)
+![gtid_mode](gtid-mode.jpg)
 
 控制是否開啟 GTID 功能。
 
@@ -207,9 +211,9 @@ gtid_executed 和 gtid_purged 這 2 個系統變量在 MySQL 啟動時會透過 
 
 在修改 gtid_mode 時一次只能變更為上一個或下一個值，例如：原先設置為 OFF_PERMISSIVE 則只能設置為 OFF 或 ON_PERMISSIVE。
 
-### [enforce_gtid_consistency](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_enforce_gtid_consistency)
+### enforce_gtid_consistency
 
-![enforce_gtid_consistency](images/enforce-gtid-consistency.jpg)
+![enforce_gtid_consistency](enforce-gtid-consistency.jpg)
 
 控制是否允許違反 GTID 一致性的語句執行，必須設置為 ON 才能設置 gtid_mode = ON。
 
@@ -223,7 +227,7 @@ gtid_executed 和 gtid_purged 這 2 個系統變量在 MySQL 啟動時會透過 
 
 違反 GTID 一致性的語句可以參考 [GTID 限制](GTID%20903c4e34f0cc474ea92f3368b7d552de.md) 章節。
 
-### [gtid_next](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_next)
+### gtid_next
 
 ![gtid-next](gtid-next.jpg)
 
@@ -254,7 +258,7 @@ mysql> insert into test values(2,20);
 ERROR 1837 (HY000): When @@SESSION.GTID_NEXT is set to a GTID, you must explicitly set it to a different value after a COMMIT or ROLLBACK. Please check GTID_NEXT variable manual page for detailed explanation. Current @@SESSION.GTID_NEXT is '08d3c091-addb-11ed-8959-0242ac1c0002:5'.
 ```
 
-### [gtid_owned](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_owned)
+### gtid_owned
 
 ![gtid_owned](gtid-owned.jpg)
 
@@ -271,7 +275,7 @@ ERROR 1837 (HY000): When @@SESSION.GTID_NEXT is set to a GTID, you must explicit
   當 gtid_next = AUTOMATIC 時，只有在 Trasnsaction commit 時能從 gtid_next 中短暫觀察到，其餘時候會是空值。
 
 
-### [gtid_executed](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_executed)
+### gtid_executed
 
 ![gtid_executed](gtid-executed.jpg)
 
@@ -281,7 +285,7 @@ ERROR 1837 (HY000): When @@SESSION.GTID_NEXT is set to a GTID, you must explicit
 
 gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何時候執行 GTID_SUBTRACT(@@GLOBAL.gtid_executed, @@GLOBAL.gtid_purged) 可以得到未清除的 binlog 中所有的 GTID。
 
-### [gtid_purged](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_purged)
+### gtid_purged
 
 ![gtid_purged](gtid-purged.jpg)
 
@@ -331,7 +335,7 @@ gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何
 
 注意：在 MySQL 5.7 中只能直接變更成指定的 GTID SET，無法使用 append 的方式，且只有當 gtid_executed 為空 (也就是 gtid_purged 值也為空) 時才可以更新 gtid_purged 的值
 
-### [gtid_executed_compression_period](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_gtid_executed_compression_period)
+### gtid_executed_compression_period
 
 ![gtid_executed_compression_period](gtid-executed-compression-period.jpg)
 
@@ -339,13 +343,13 @@ gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何
 
 當啟用 binlog 時，不會使用此設置，而是當 binlog rotation 時才會壓縮 mysql.gtid_executed 表。
 
-### [binlog_gtid_simple_recovery](https://dev.mysql.com/doc/refman/8.0/en/replication-options-gtids.html#sysvar_binlog_gtid_simple_recovery)
+### binlog_gtid_simple_recovery
 
 ![binlog_gtid_simple_recovery](binlog-gtid-simple-recovery.jpg)
 
 控制 MySQL 啟動時從 binlog 尋找 GTID 的行為。
 
-# GTID 限制
+## GTID 限制
 
 1. 不能在一個 Transaction 中同時涉及 nontransactional 儲存引擎 (例如：MyISAM) 和 transactional儲存引擎 (例如：InnoDB) 的表進行更新。
 2. 不支持 sql_slave_skip_counter，除非 slave 在 CHANGE MASTER  時包含了 ASSIGN_GTIDS_TO_ANONYMOUS_TRANSACTIONS 才能使用 sql_slave_skip_counter。
@@ -366,7 +370,7 @@ gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何
    從 MySQL 8.0.16 開始，執行 mysql_upgrade 期間總是會自動禁用 binlog，因此沒有問題。
 
 
-# 在線開啟 GTID
+## 在線開啟 GTID
 
 1. 在所有的 MySQL server 設置：
 
@@ -459,9 +463,9 @@ gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何
     ```
 
 
-# GTID 中的維運
+## GTID 中的維運
 
-## SHOW SLAVE STATUS
+### SHOW SLAVE STATUS
 
 在開啟 GTID 後，透過 SHOW SLAVE STATUS 會增加以下資訊：
 
@@ -473,7 +477,7 @@ gtid_executed 的 Gtid_Set 會包含 gtid_purged 的 Gtid_Set ，因此在任何
 
 - Executed_Gtid_Set：Slave 已經執行的 GTID SET (包含直接在 slave 上執行的語句)，等同於 gtid_executed。
 
-## 清除 GTID 歷史紀錄
+### 清除 GTID 歷史紀錄
 
 如果要完全清楚 GTID 歷史紀錄可以使用 RESET MASTER 指令。
 
@@ -488,7 +492,7 @@ RESET MASTER 執行以下操作：
 
 注意只有 RESET MSTER 會重置 GTID 的歷史紀錄，RESET SLAVE 沒有任何影響。
 
-## 跳過一個 Transaction
+### 跳過一個 Transaction
 
 當有 Transaction 在 SQL_Thread 中發生錯誤時，可以透過 performance_schema 中的`replication_applier_status_by_worker` 該表中的 APPLYING_TRANSACTION 欄位獲取該 Transaction 的 GTID。
 
@@ -515,7 +519,7 @@ START SLAVE;
 
 [MySQL :: MySQL 8.0 Reference Manual :: 17.1.7.3 Skipping Transactions](https://dev.mysql.com/doc/refman/8.0/en/replication-administration-skip.html)
 
-## mysqldump 行為的變化
+### mysqldump 行為的變化
 
 mysqldump 在開啟 gtid 後預設的 dump 行為會有所改變，這是因為 `--set-gtid-purged` 該選項預設值的影響：
 
@@ -553,7 +557,7 @@ mysqldump 在開啟 gtid 後預設的 dump 行為會有所改變，這是因為 
 
 - 當 `gtid_mode = ON` 開啟 GTID 時，雖然不需要生成新的 GTID 但情況特殊需要手動設置 `gtid_purged` 時，例如：還原的 Slave 上有多個 channel ……等，這時候就可以設置為 `COMMENTED` 後，根據實際需要手動調整該機器的 `gtid_purgrd`。
 
-## Replication filter
+### Replication filter
 
 曾經線上環境從傳統 Position 點位的 Replication 切換到 GTID 時發生了問題
 
