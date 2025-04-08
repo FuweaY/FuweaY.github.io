@@ -18,27 +18,29 @@ weight: 1
 ```
 // 以下更新項目可直接使用 MySQL Online DDL 更新即可
 MySQL 5.7：
-	1. drop & rename index
-	2. rename column & table
-	3. 調整默認值
-	4. varchar欄位加大 (0~255) or (256~)
-	5. 新增 & 刪除虛擬列
-    6. auto_increment=?
+    1. drop & rename index
+    2. rename column & table
+    3. 調整默認值
+    4. varchar欄位加大 (0~255) or (256~)
+    5. 新增 & 刪除虛擬列
+    6. auto_increment = ?
+
 
 MySQL 8.0.29以下 快速加列條件與限制：
-	1. 不能和其他不支持 INSTANT 的 DDL 語句同時使用
-	2. 只能加在表中的最後一列
-	3. 加列不能在 ROW_FORMAT = COMPRESSED 使用
-	4. 加列不能在包含 FULLTEXT INDEX 的表中使用
-	5. 加列不能添加到 temporary table 中
-	6. Columns cannot be added to tables that reside in the data dictionary tablespace.
-	7. 只在 UPDATE、INSERT 時，才檢查 ROW 是否符合 TABLE 大小限制
+    1. 不能和其他不支持 INSTANT 的 DDL 語句同時使用
+    2. 只能加在表中的最後一列
+    3. 加列不能在 ROW_FORMAT = COMPRESSED 使用
+    4. 加列不能在包含 FULLTEXT INDEX 的表中使用
+    5. 加列不能添加到 temporary table 中
+    6. Columns cannot be added to tables that reside in the data dictionary tablespace.
+    7. 只在 UPDATE、INSERT 時，才檢查 ROW 是否符合 TABLE 大小限制
 
 MySQL 8.0.29開始：
     1. 快速加列不再有位置限制
     2. drop column
 
-注意：當達 64 次操作後不支援 INSTANT 算法，需要使用 COPY 算法或 gh-ost 等方案重置此技術，不過 MySQL 9.1 開始次數增加到 225 次
+注意：當達 64 次操作 INSTANT 算法後，需要使用 COPY 算法或 gh-ost 等方案重置此計數，不過 MySQL 9.1 開始次數增加到 225 次。
+
 可透過以下語法確認目前次數：
 SELECT NAME, TOTAL_ROW_VERSIONS FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE 'dbname/tablename';
 ```
