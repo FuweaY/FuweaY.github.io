@@ -1,3 +1,45 @@
 /*
     You can add your own custom styles here.
 */
+/* 確保程式碼區塊的行號樣式不重複 */
+/*
+    You can add your own custom styles here.
+*/
+
+// 程式碼區塊自動換行
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+// 一般程式碼
+code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+// 多行程式碼區塊
+.highlight pre {
+    white-space: pre;
+    overflow-x: auto;
+}
+
+// 行號容器
+.highlight .lnt {
+    white-space: pre;
+    user-select: none;
+    margin-right: 0.4em;
+    padding: 0 0.4em 0 0.4em;
+    color: #666;
+}
+
+// 超連結樣式
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
