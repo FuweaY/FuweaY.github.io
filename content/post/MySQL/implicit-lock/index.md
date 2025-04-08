@@ -585,7 +585,3 @@ Innodb 實現的延遲加鎖的機制，在源碼中被稱為**`隱式鎖(implic
 [MySQL锁系列（一）之锁的种类和](https://keithlan.github.io/2017/06/05/innodb_locks_1/)
 
 [innodB的隐式锁](https://blog.csdn.net/taozhi20084525/article/details/19545231)
-
-## PPT
-
-[隱式鎖.pptx](%E9%9A%B1%E5%BC%8F%E9%8E%96(implicit%20lock)%20e467409b715f4c2888953772b5dc3fe5.pptx)
