@@ -6,6 +6,7 @@ date: 2025-04-01T12:00:00+08:00
 categories:
    - MySQL
 tags:
+   - deadlock
    - 內核
 weight: 1  
 ---
