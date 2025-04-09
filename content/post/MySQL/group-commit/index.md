@@ -1,7 +1,7 @@
 ---
 title: Group Commit
 description: 介紹 MySQL Group Commit 的演進
-slug: group-commit
+slug: mysql-group-commit
 date: 2025-03-27T12:00:00+08:00
 categories:
    - MySQL

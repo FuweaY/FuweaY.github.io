@@ -1,7 +1,7 @@
 ---
 title: Online DDL SOP
 description: 介紹對於 MySQL DDL 操作如何安全的在線更新 SOP
-slug: online-ddl-sop
+slug: mysql-online-ddl-sop
 date: 2024-10-16T12:00:00+08:00
 categories:
    - MySQL

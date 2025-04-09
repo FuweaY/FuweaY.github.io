@@ -1,7 +1,7 @@
 ---
 title: partition deadlock
 description: 測試總結當 update partition 欄位時引發的 deadlock
-slug: partition-deadlock
+slug: mysql-partition-deadlock
 date: 2022-11-28T12:00:00+08:00
 categories:
    - MySQL

@@ -1,7 +1,7 @@
 ---
 title: MySQL8.0 skip scan range 優化
 description: 介紹 MySQL8.0 新增的查詢優化 - skip scan range
-slug: skip-scan-range
+slug: mysql-skip-scan-range
 date: 2021-02-26T12:00:00+08:00
 categories:
    - MySQL

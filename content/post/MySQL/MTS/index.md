@@ -1,7 +1,7 @@
 ---
 title: 並行複製 (Multi-Thread Slave, MTS)
 description: 介紹 MySQL 並行複製
-slug: mts
+slug: mysql-mts
 date: 2025-04-07T12:00:00+08:00
 categories:
 - MySQL

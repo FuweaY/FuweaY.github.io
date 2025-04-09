@@ -1,7 +1,7 @@
 ---
 title: MySQL8.0 EXISTS 及 NOT IN/EXISTS 優化
 description: 介紹 MySQL8.0 EXISTS 及 NOT IN/EXISTS 的 semi-join 優化
-slug: exists-optimize
+slug: mysql-exists-optimize
 date: 2020-07-23T12:00:00+08:00
 categories:
   - MySQL

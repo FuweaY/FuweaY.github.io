@@ -1,7 +1,7 @@
 ---
 title: semi-join(半連結)和anti-join(反連結)
 description: 介紹 MySQL 在 IN 和 Exists 上實現的 semi join 和 anti join 的內部優化
-slug: semi-join-and-anti-join
+slug: mysql-semi-join-and-anti-join
 date: 2022-07-01T12:00:00+08:00
 categories:
    - MySQL

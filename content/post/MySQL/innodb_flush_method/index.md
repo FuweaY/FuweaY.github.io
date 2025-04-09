@@ -1,7 +1,7 @@
 ---
 title: innodb_flush_method
 description: 介紹對於 innodb_flush_method 的設定
-slug: innodb-flush-method
+slug: mysql-innodb-flush-method
 date: 2024-04-30T12:00:00+08:00
 categories:
    - MySQL

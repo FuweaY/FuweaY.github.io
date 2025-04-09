@@ -1,7 +1,7 @@
 ---
 title: GTID
 description: 介紹 MySQL GTID Replication
-slug: gtid
+slug: mysql-gtid
 date: 2025-03-27T12:00:00+08:00
 categories:
 - MySQL

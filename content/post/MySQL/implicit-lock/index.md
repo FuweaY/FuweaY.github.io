@@ -1,7 +1,7 @@
 ---
 title: 隱式鎖
 description: 介紹 MySQL 中不容易發現的隱式鎖 (implicit lock)
-slug: implicit-lock
+slug: mysql-implicit-lock
 date: 2025-04-01T12:00:00+08:00
 categories:
    - MySQL

@@ -1,7 +1,7 @@
 ---
 title: MySQL8.0 對於 replication delay 觀測改進
 description: 介紹 MySQL8.0 對於 replication delay 觀測改進
-slug: replication-delay-observation-improve
+slug: mysql-replication-delay-observation-improve
 date: 2022-12-23T12:00:00+08:00
 categories:
    - MySQL
