@@ -356,24 +356,19 @@ Where 子句中的條件可以包含對某個 column  進行運算的函數表�
 
 如果 function 的常量參數小於 ngram 大小則不能使用 `ngrambf_v1` 進行查詢優化。
 
-<aside>
-💡 因為 bloom filter 有偽陽性的狀況，因此 bloom filter 的 skipping index 不能用於結果返回為 false 的 function，例如： 
-
+> 💡 因為 bloom filter 有偽陽性的狀況，因此 bloom filter 的 skipping index 不能用於結果返回為 false 的 function，例如： 
 能優化的場景：
 s LIKE '%test%’
 NOT s NOT LIKE '%test%’
 s = 1
 NOT s != 1
 startsWith(s, ‘test’)
-
 不能優化的場景：
 NOT s LIKE '%test%’
 s NOT LIKE '%test%’
 NOT s = 1
 S != 1
 NOT startsWith(s, ‘test’)
-
-</aside>
 
 ### Skipping index 的配置
 
