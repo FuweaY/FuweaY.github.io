@@ -2,7 +2,7 @@
 title: MySQL Client Command
 description: 介紹 MySQL Client 冷門的 command
 slug: client-command
-date: 2022-09-20T12:00:00+08:00
+date: 2020-09-20T12:00:00+08:00
 categories:
    - MySQL
 tags:
