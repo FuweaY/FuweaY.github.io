@@ -1,0 +1,791 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="介紹對於 MySQL DDL 操作如何安全的在線更新 SOP"><title>Online DDL SOP</title>
+<link rel=canonical href=https://FuweaY.github.io/p/mysql-online-ddl-sop/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="Online DDL SOP"><meta property='og:description' content="介紹對於 MySQL DDL 操作如何安全的在線更新 SOP"><meta property='og:url' content='https://FuweaY.github.io/p/mysql-online-ddl-sop/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='SOP'><meta property='article:published_time' content='2024-10-16T12:00:00+08:00'><meta property='article:modified_time' content='2024-10-16T12:00:00+08:00'><meta name=twitter:title content="Online DDL SOP"><meta name=twitter:description content="介紹對於 MySQL DDL 操作如何安全的在線更新 SOP"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#決定更新方式>決定更新方式</a></li><li><a href=#mysql-online-ddl>MySQL Online DDL</a></li><li><a href=#gh-ost-方案>gh-ost 方案</a><ol><li><a href=#事前設定>事前設定</a></li><li><a href=#執行步驟>執行步驟</a></li><li><a href=#特殊情況>特殊情況</a><ol><li><a href=#_gho或_ghc-already-exists-或-sock-bindaddress-already-in-use>_gho(或_ghc) already exists 或 sock: bind:address already in use</a></li><li><a href=#如果沒有slave如何使用-gh-ost-呢>如果沒有Slave，如何使用 <code>gh-ost</code> 呢?</a></li><li><a href=#error-binlogstreamergo77-close-sync-with-err-sync-is-been-closing>[error] binlogstreamer.go:77 close sync with err: sync is been closing&mldr;</a></li><li><a href=#error-error-1146-table-account_proxy_sms_validate_code_ghc-doesnt-exist>ERROR Error 1146: Table &lsquo;account_proxy._sms_validate_code_ghc&rsquo; doesn&rsquo;t exist</a></li><li><a href=#gh-ost-執行過程出現-error-1364>gh-ost 執行過程出現 ERROR 1364</a></li><li><a href=#手動暫時停止-gh-ost-帶來的-loading>手動暫時停止 gh-ost 帶來的 loading</a></li><li><a href=#如何中斷-gh-ost>如何中斷 gh-ost</a></li><li><a href=#調整-gh-ost-loading-相關的參數>調整 gh-ost loading 相關的參數</a></li><li><a href=#如何調整-primary-key>如何調整 primary key</a></li><li><a href=#如何解決-unexpected-database-port>如何解決 Unexpected database port</a></li><li><a href=#gh-ost-偷吃步>gh-ost 偷吃步</a></li></ol></li></ol></li><li><a href=#pt-osc-方案>pt-osc 方案</a><ol><li><a href=#執行>執行</a></li></ol></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/mysql/>MySQL</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/mysql-online-ddl-sop/>Online DDL SOP</a></h2><h3 class=article-subtitle>介紹對於 MySQL DDL 操作如何安全的在線更新 SOP</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Oct 16, 2024</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 10 分鐘</time></div></footer></div></header><section class=article-content><h2 id=決定更新方式>決定更新方式</h2><p><img src=/p/mysql-online-ddl-sop/DDL-Choose.png width=1112 height=1111 srcset="/p/mysql-online-ddl-sop/DDL-Choose_hu_7d997967438f26bf.png 480w, /p/mysql-online-ddl-sop/DDL-Choose_hu_d50012658dbb8670.png 1024w" loading=lazy alt="Online DDL 更新方案選擇" class=gallery-image data-flex-grow=100 data-flex-basis=240px></p><h2 id=mysql-online-ddl>MySQL Online DDL</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-gdscript3 data-lang=gdscript3><span class=line><span class=cl><span class=o>//</span> <span class=err>以下更新項目可直接使用</span> <span class=n>MySQL</span> <span class=n>Online</span> <span class=n>DDL</span> <span class=err>更新即可</span>
+</span></span><span class=line><span class=cl><span class=n>MySQL</span> <span class=mf>5.7</span><span class=err>：</span>
+</span></span><span class=line><span class=cl>    <span class=mf>1.</span> <span class=n>drop</span> <span class=o>&amp;</span> <span class=n>rename</span> <span class=n>index</span>
+</span></span><span class=line><span class=cl>    <span class=mf>2.</span> <span class=n>rename</span> <span class=n>column</span> <span class=o>&amp;</span> <span class=n>table</span>
+</span></span><span class=line><span class=cl>    <span class=mf>3.</span> <span class=err>調整默認值</span>
+</span></span><span class=line><span class=cl>    <span class=mf>4.</span> <span class=n>varchar欄位加大</span> <span class=p>(</span><span class=mi>0</span><span class=o>~</span><span class=mi>255</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=mi>256</span><span class=o>~</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=mf>5.</span> <span class=err>新增</span> <span class=o>&amp;</span> <span class=err>刪除虛擬列</span>
+</span></span><span class=line><span class=cl>    <span class=mf>6.</span> <span class=n>auto_increment</span> <span class=o>=</span> <span class=err>?</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>MySQL</span> <span class=mf>8.0</span><span class=o>.</span><span class=mi>29</span><span class=err>以下</span> <span class=err>快速加列條件與限制：</span>
+</span></span><span class=line><span class=cl>    <span class=mf>1.</span> <span class=err>不能和其他不支持</span> <span class=n>INSTANT</span> <span class=err>的</span> <span class=n>DDL</span> <span class=err>語句同時使用</span>
+</span></span><span class=line><span class=cl>    <span class=mf>2.</span> <span class=err>只能加在表中的最後一列</span>
+</span></span><span class=line><span class=cl>    <span class=mf>3.</span> <span class=err>加列不能在</span> <span class=n>ROW_FORMAT</span> <span class=o>=</span> <span class=n>COMPRESSED</span> <span class=err>使用</span>
+</span></span><span class=line><span class=cl>    <span class=mf>4.</span> <span class=err>加列不能在包含</span> <span class=n>FULLTEXT</span> <span class=n>INDEX</span> <span class=err>的表中使用</span>
+</span></span><span class=line><span class=cl>    <span class=mf>5.</span> <span class=err>加列不能添加到</span> <span class=n>temporary</span> <span class=n>table</span> <span class=err>中</span>
+</span></span><span class=line><span class=cl>    <span class=mf>6.</span> <span class=n>Columns</span> <span class=n>cannot</span> <span class=n>be</span> <span class=n>added</span> <span class=n>to</span> <span class=n>tables</span> <span class=n>that</span> <span class=n>reside</span> <span class=ow>in</span> <span class=n>the</span> <span class=n>data</span> <span class=n>dictionary</span> <span class=n>tablespace</span><span class=o>.</span>
+</span></span><span class=line><span class=cl>    <span class=mf>7.</span> <span class=err>只在</span> <span class=n>UPDATE</span><span class=err>、</span><span class=n>INSERT</span> <span class=err>時，才檢查</span> <span class=n>ROW</span> <span class=err>是否符合</span> <span class=n>TABLE</span> <span class=err>大小限制</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>MySQL</span> <span class=mf>8.0</span><span class=o>.</span><span class=mi>29</span><span class=err>開始：</span>
+</span></span><span class=line><span class=cl>    <span class=mf>1.</span> <span class=err>快速加列不再有位置限制</span>
+</span></span><span class=line><span class=cl>    <span class=mf>2.</span> <span class=n>drop</span> <span class=n>column</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>注意：當達</span> <span class=mi>64</span> <span class=err>次操作</span> <span class=n>INSTANT</span> <span class=err>算法後，需要使用</span> <span class=n>COPY</span> <span class=err>算法或</span> <span class=n>gh</span><span class=o>-</span><span class=n>ost</span> <span class=err>等方案重置此計數，不過</span> <span class=n>MySQL</span> <span class=mf>9.1</span> <span class=err>開始次數增加到</span> <span class=mi>225</span> <span class=err>次。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=err>可透過以下語法確認目前次數：</span>
+</span></span><span class=line><span class=cl><span class=n>SELECT</span> <span class=n>NAME</span><span class=p>,</span> <span class=n>TOTAL_ROW_VERSIONS</span> <span class=n>FROM</span> <span class=n>INFORMATION_SCHEMA</span><span class=o>.</span><span class=n>INNODB_TABLES</span> <span class=n>WHERE</span> <span class=n>NAME</span> <span class=n>LIKE</span> <span class=s1>&#39;dbname/tablename&#39;</span><span class=p>;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=gh-ost-方案>gh-ost 方案</h2><h3 id=事前設定>事前設定</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>//</span><span class=w> </span><span class=n>Linux</span><span class=w> </span><span class=err>安裝</span><span class=w> </span><span class=n>gh</span><span class=o>-</span><span class=n>ost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>sudo</span><span class=w> </span><span class=n>rpm</span><span class=w> </span><span class=o>-</span><span class=n>ivh</span><span class=w> </span><span class=n>gh</span><span class=o>-</span><span class=n>ost</span><span class=p>.</span><span class=n>rpm</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>//</span><span class=w> </span><span class=n>Linux</span><span class=w> </span><span class=err>安裝</span><span class=w> </span><span class=n>nc</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>sudo</span><span class=w> </span><span class=n>yum</span><span class=w> </span><span class=n>install</span><span class=w> </span><span class=n>nc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>//</span><span class=w> </span><span class=n>vim</span><span class=w> </span><span class=n>my</span><span class=p>.</span><span class=n>cnf</span><span class=err>，持久化</span><span class=w> </span><span class=n>binlog_format</span><span class=w> </span><span class=err>設定</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>binlog_format</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>ROW</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>binlog_rows_query_log_events</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>ON</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>binlog_row_image</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>full</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=執行步驟>執行步驟</h3><ol><li><p><code>system variables</code> 檢查</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>//</span><span class=w> </span><span class=err>檢查</span><span class=w> </span><span class=k>system</span><span class=w> </span><span class=n>variables</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;binlog_format&#39;</span><span class=p>;</span><span class=w>     </span><span class=o>#</span><span class=w> </span><span class=k>ROW</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;binlog_row_image&#39;</span><span class=p>;</span><span class=w>  </span><span class=o>#</span><span class=w> </span><span class=k>full</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;sql_mode&#39;</span><span class=p>;</span><span class=w>          </span><span class=o>#</span><span class=w> </span><span class=s1>&#39;&#39;</span><span class=err>，若不是嚴格模式，需添加</span><span class=o>-</span><span class=n>skip</span><span class=o>-</span><span class=k>strict</span><span class=o>-</span><span class=k>mode</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;log_bin&#39;</span><span class=p>;</span><span class=w>           </span><span class=o>#</span><span class=w> </span><span class=k>ON</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SHOW</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>VARIABLES</span><span class=w> </span><span class=k>LIKE</span><span class=w> </span><span class=s1>&#39;log_slave_updates&#39;</span><span class=p>;</span><span class=w> </span><span class=o>#</span><span class=w> </span><span class=k>ON</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li><li><p>不要帶入 <code>--execute</code> 進行簡易測試</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>slave_host</span><span class=o>=</span><span class=s2>&#34;slave_host&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>database_name</span><span class=o>=</span><span class=s2>&#34;ghost_test&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>table_name</span><span class=o>=</span><span class=s2>&#34;event_1&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>ddl_query</span><span class=o>=</span><span class=s2>&#34;ADD COLUMN test varchar(20) AFTER remark,
+</span></span></span><span class=line><span class=cl><span class=s2>ADD COLUMN test2 varchar(20) AFTER test&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>gh_ost_user</span><span class=o>=</span><span class=s2>&#34;OdLd&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 參數詳細可參考：[https://www.notion.so/eb0d22b2eea64fb7bfed176a8efab6c1?v=b9f4fd843f69483cbbe74aa04c4a1372](gh-ost%20b1e6f809c8c54a009cde6b2b7f1ab00c/%E5%8F%83%E6%95%B8%20eb0d22b2eea64fb7bfed176a8efab6c1.md)</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--assume-rbr <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--exact-rowcount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--concurrent-rowcount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># global sql_mode 不是嚴格模式需添加` \</span>
+</span></span><span class=line><span class=cl>--skip-strict-mode <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--host<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>slave_host</span><span class=si>}</span><span class=s2>&#34;</span> --port<span class=o>=</span><span class=m>3306</span> --user<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>gh_ost_user</span><span class=si>}</span><span class=s2>&#34;</span> --ask-pass <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--database<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>database_name</span><span class=si>}</span><span class=s2>&#34;</span> --table<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>table_name</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--alter<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>ddl_query</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--timestamp-old-table <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># gh-ost 的 server_id, 設定為 1000000000 + linux pid` \</span>
+</span></span><span class=line><span class=cl>--replica-server-id<span class=o>=</span><span class=k>$((</span><span class=m>1000000000</span><span class=o>+</span><span class=nv>$$</span><span class=k>))</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 進入 throttle 的 loading 門檻` \</span>
+</span></span><span class=line><span class=cl>--max-load<span class=o>=</span><span class=nv>Threads_running</span><span class=o>=</span><span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 需要監控replication lag 的slave，當gh-ost偵測不到時使用，格式：myhost1.com:3307,myhost2.com:3308` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1>#--throttle-control-replicas=myhost1.com:3307,myhost2.com:3308` \</span>
+</span></span><span class=line><span class=cl>--max-lag-millis<span class=o>=</span><span class=m>1000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 當存在該文件時，進入throttle` \</span>
+</span></span><span class=line><span class=cl>--throttle-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_throttle.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--throttle-additional-flag-file<span class=o>=</span>/tmp/gh-ost_all_throttle.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># --throttle-query string` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1># critical load 設定，格式:some_status=&lt;numeric-threshold&gt;[,some_status=&lt;numeric-threshold&gt;...]` \</span>
+</span></span><span class=line><span class=cl>--critical-load<span class=o>=</span><span class=nv>Threads_running</span><span class=o>=</span><span class=m>250</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--critical-load-hibernate-seconds <span class=m>60</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 每次處理的行數，可以視loading調整，預設1000` \</span>
+</span></span><span class=line><span class=cl>--chunk-size<span class=o>=</span><span class=m>1000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 範圍 0.0~100.0，每複製完一個chunk的資料後， gh-ost 將休眠 複製消耗的時間 * nice-ratio` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1># 假設每複製一個chunk的資料需要 100ms，當 nice-ratio=0.5 時， gh-ost 將休眠 100*0.5=50ms` \</span>
+</span></span><span class=line><span class=cl>--nice-ratio<span class=o>=</span><span class=m>0</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># gh-ost 批次應用 binlog 事件的數量，通常不需要調整` \</span>
+</span></span><span class=line><span class=cl>--dml-batch-size<span class=o>=</span><span class=m>10</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 該文件存在時，gh-ost會直接中斷，並且不處理已複製的資料` \</span>
+</span></span><span class=line><span class=cl>--panic-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_panic.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--force-named-cut-over --force-named-panic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#若想立刻切換新表，請取註解下方參數，但不建議` \</span>
+</span></span><span class=line><span class=cl>--postpone-cut-over-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_postpone.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--verbose
+</span></span></code></pre></td></tr></table></div></div></li><li><p>若以上測試後沒有問題可以正式執行</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nv>slave_host</span><span class=o>=</span><span class=s2>&#34;slave_host&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>database_name</span><span class=o>=</span><span class=s2>&#34;ghost_test&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>table_name</span><span class=o>=</span><span class=s2>&#34;event_1&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>ddl_query</span><span class=o>=</span><span class=s2>&#34;ADD COLUMN test varchar(20) AFTER remark,
+</span></span></span><span class=line><span class=cl><span class=s2>ADD COLUMN test2 varchar(20) AFTER test&#34;</span>
+</span></span><span class=line><span class=cl><span class=nv>gh_ost_user</span><span class=o>=</span><span class=s2>&#34;OdLd&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--assume-rbr <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--exact-rowcount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--concurrent-rowcount <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># global sql_mode 不是嚴格模式需添加` \</span>
+</span></span><span class=line><span class=cl>--skip-strict-mode <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--host<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>slave_host</span><span class=si>}</span><span class=s2>&#34;</span> --port<span class=o>=</span><span class=m>3306</span> --user<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>gh_ost_user</span><span class=si>}</span><span class=s2>&#34;</span> --ask-pass <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--database<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>database_name</span><span class=si>}</span><span class=s2>&#34;</span> --table<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>table_name</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--alter<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>ddl_query</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--timestamp-old-table <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># gh-ost 的 server_id, 設定為 1000000000 + linux pid` \</span>
+</span></span><span class=line><span class=cl>--replica-server-id<span class=o>=</span><span class=k>$((</span><span class=m>1000000000</span><span class=o>+</span><span class=nv>$$</span><span class=k>))</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 進入 throttle 的 loading 門檻` \</span>
+</span></span><span class=line><span class=cl>--max-load<span class=o>=</span><span class=nv>Threads_running</span><span class=o>=</span><span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 需要監控replication lag 的slave，當gh-ost偵測不到時使用，格式：myhost1.com:3307,myhost2.com:3308` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1>#--throttle-control-replicas=myhost1.com:3307,myhost2.com:3308` \</span>
+</span></span><span class=line><span class=cl>--max-lag-millis<span class=o>=</span><span class=m>1000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 當存在該文件時，進入throttle` \</span>
+</span></span><span class=line><span class=cl>--throttle-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_throttle.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--throttle-additional-flag-file<span class=o>=</span>/tmp/gh-ost_all_throttle.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># --throttle-query string` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1># critical load 設定，格式:some_status=&lt;numeric-threshold&gt;[,some_status=&lt;numeric-threshold&gt;...]` \</span>
+</span></span><span class=line><span class=cl>--critical-load<span class=o>=</span><span class=nv>Threads_running</span><span class=o>=</span><span class=m>250</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--critical-load-hibernate-seconds <span class=m>60</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 每次處理的行數，可以視loading調整，預設1000` \</span>
+</span></span><span class=line><span class=cl>--chunk-size<span class=o>=</span><span class=m>1000</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 範圍 0.0~100.0，每複製完一個chunk的資料後， gh-ost 將休眠 複製消耗的時間 * nice-ratio` \</span>
+</span></span><span class=line><span class=cl><span class=sb>`</span><span class=c1># 假設每複製一個chunk的資料需要 100ms，當 nice-ratio=0.5 時， gh-ost 將休眠 100*0.5=50ms` \</span>
+</span></span><span class=line><span class=cl>--nice-ratio<span class=o>=</span><span class=m>0</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># gh-ost 批次應用 binlog 事件的數量，通常不需要調整` \</span>
+</span></span><span class=line><span class=cl>--dml-batch-size<span class=o>=</span><span class=m>10</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1># 該文件存在時，gh-ost會直接中斷，並且不處理已複製的資料` \</span>
+</span></span><span class=line><span class=cl>--panic-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_panic.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--force-named-cut-over --force-named-panic <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--verbose <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#若想立刻切換新表，請取註解下方參數，但不建議` \</span>
+</span></span><span class=line><span class=cl>--postpone-cut-over-flag-file<span class=o>=</span>/tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>_postpone.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--hooks-path<span class=o>=</span>/var/lib/DBA/gh-ost/gh-ost_hooks <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--execute 2&gt;<span class=p>&amp;</span><span class=m>1</span> <span class=p>|</span> tee /tmp/gh-ost_<span class=si>${</span><span class=nv>database_name</span><span class=si>}</span>_<span class=si>${</span><span class=nv>table_name</span><span class=si>}</span>.log
+</span></span></code></pre></td></tr></table></div></div></li><li><p>若在非正式環境，可以在切換前直接比較新舊表的部分資料；若在正式環境，可以在切換前到 <code>備份機</code> stop slave 後，徹底比較新舊表的資料更安心</p></li><li><p>確定要切換表之後，開啟另外一個視窗，刪除 <code>postpone-cut-over-flag-file</code> 指定的檔案</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1>#Copy: 0/0 100.0%; Applied: 0; Backlog: 0/1000; Time: 1s(total), 0s(copy); </span>
+</span></span><span class=line><span class=cl><span class=c1>#streamer: bin.000002:104008387; Lag: 0.01s, State: postponing cut-over; ETA: due</span>
+</span></span><span class=line><span class=cl><span class=c1>#如上例當進度中出現State: postponing cut-over表示原表皆已遷移完成，此時進度也會是100%</span>
+</span></span><span class=line><span class=cl><span class=c1>#可以將新舊表交換了，此時可以透過以下兩種方式繼續下一步切表動作</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 第一種方式</span>
+</span></span><span class=line><span class=cl>ls -l /tmp
+</span></span><span class=line><span class=cl>rm -f /tmp/gh-ost_databasename_tablename_postpone.flag
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 第二種方式</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=nv>unpostpone</span><span class=o>=</span><span class=s1>&#39;tablename&#39;</span> <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span></code></pre></td></tr></table></div></div></li><li><p>於 loading 較低的時段執行刪除舊表的動作</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>...</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li></ol><h3 id=特殊情況>特殊情況</h3><h4 id=_gho或_ghc-already-exists-或-sock-bindaddress-already-in-use>_gho(或_ghc) already exists 或 sock: bind:address already in use</h4><p>當發生錯誤： <code>_gho(或_ghc)</code> already exists 或 <code>sock: bind:address</code> already in use，有可能是 <code>上一次遷移失敗</code> 或者 <code>已經有gh-ost在遷移該張表</code>，如果是 <code>上一次遷移失敗</code> 請刪除 <code>table OR socket</code> 即可正常運作。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=c># table 已存在</span>
+</span></span><span class=line><span class=cl><span class=n>FATAL</span> <span class=n>Table</span> <span class=p>`</span><span class=n>_tablename_gho</span><span class=p>`</span> <span class=n>already</span> <span class=n>exists</span><span class=p>.</span> <span class=n>Panicking</span><span class=p>.</span> 
+</span></span><span class=line><span class=cl><span class=n>Use</span> <span class=p>-</span><span class=n>-initially-drop-ghost-table</span> <span class=n>to</span> <span class=n>force</span> <span class=n>dropping</span> <span class=n>it</span><span class=p>,</span> 
+</span></span><span class=line><span class=cl><span class=n>though</span> <span class=n>I</span> <span class=n>really</span> <span class=n>prefer</span> <span class=n>that</span> <span class=n>you</span> <span class=n>drop</span> <span class=n>it</span> <span class=n>or</span> <span class=n>rename</span> <span class=n>it</span> <span class=n>away</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c># socket 已存在</span>
+</span></span><span class=line><span class=cl><span class=n>FATAL</span> <span class=n>listen</span> <span class=n>unix</span> <span class=p>/</span><span class=n>tmp</span><span class=p>/</span><span class=nb>gh-ost</span><span class=p>.</span><span class=py>databasename</span><span class=p>.</span><span class=py>tablename</span><span class=p>.</span><span class=n>sock</span><span class=err>:</span> <span class=n>bind</span><span class=err>:</span> 
+</span></span><span class=line><span class=cl><span class=n>address</span> <span class=n>already</span> <span class=k>in</span> <span class=n>use</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=如果沒有slave如何使用-gh-ost-呢>如果沒有Slave，如何使用 <code>gh-ost</code> 呢?</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=c># host 的部分填入 master，並加上 allow-on-master 的參數</span>
+</span></span><span class=line><span class=cl><span class=n>slave_host</span><span class=p>=</span><span class=s2>&#34;master_host&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>gh-ost</span> <span class=p>\</span>
+</span></span><span class=line><span class=cl><span class=p>-</span><span class=n>-allow-on-master</span> <span class=p>\</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=error-binlogstreamergo77-close-sync-with-err-sync-is-been-closing>[error] binlogstreamer.go:77 close sync with err: sync is been closing&mldr;</h4><p>成功執行完畢後出現以下錯誤，若DDL有正常執行可以忽略</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># gh-ost 重複關閉複製通道</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>error<span class=o>]</span> binlogstreamer.go:77 close sync with err: sync is been closing...
+</span></span><span class=line><span class=cl><span class=c1># 可參考 [https://github.com/github/gh-ost/issues/597](https://github.com/github/gh-ost/issues/597)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=error-error-1146-table-account_proxy_sms_validate_code_ghc-doesnt-exist>ERROR Error 1146: Table &lsquo;account_proxy._sms_validate_code_ghc&rsquo; doesn&rsquo;t exist</h4><p>成功執行完畢後出現以下錯誤，若DDL有正常執行可以忽略</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># gh-ost 刪除 ghc table後，binlog應用跟到此語法且被 gh-ost 捕捉到</span>
+</span></span><span class=line><span class=cl>ERROR Error 1146: Table <span class=s1>&#39;account_proxy._sms_validate_code_ghc&#39;</span> doesn<span class=err>&#39;</span>t exist
+</span></span><span class=line><span class=cl><span class=c1># 可參考 [https://github.com/github/gh-ost/issues/657](https://github.com/github/gh-ost/issues/657)</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=gh-ost-執行過程出現-error-1364>gh-ost 執行過程出現 ERROR 1364</h4><p>當執行 gh-ost 途中出現 ERROR 1364 如下錯誤：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>Copy: 1/1 100.0%<span class=p>;</span> Applied: 0<span class=p>;</span> Backlog: 0/1000<span class=p>;</span> Time: 22s<span class=o>(</span>total<span class=o>)</span>, 1s<span class=o>(</span>copy<span class=o>)</span><span class=p>;</span> streamer: binlog.000002:382415<span class=p>;</span> Lag: 0.12s, State: postponing cut-over<span class=p>;</span> ETA: due
+</span></span><span class=line><span class=cl>2021-11-24 15:21:26 ERROR Error 1364: Field <span class=s1>&#39;test_2&#39;</span> doesn<span class=err>&#39;</span>t have a default value<span class=p>;</span> <span class=nv>query</span><span class=o>=</span>
+</span></span><span class=line><span class=cl>                        replace /* gh-ost <span class=sb>`</span><span class=nb>test</span><span class=sb>`</span>.<span class=sb>`</span>_test_gho<span class=sb>`</span> */ into
+</span></span><span class=line><span class=cl>                                <span class=sb>`</span><span class=nb>test</span><span class=sb>`</span>.<span class=sb>`</span>_test_gho<span class=sb>`</span>
+</span></span><span class=line><span class=cl>                                        <span class=o>(</span><span class=sb>`</span>id<span class=sb>`</span>, <span class=sb>`</span>test_1<span class=sb>`</span><span class=o>)</span>
+</span></span><span class=line><span class=cl>                                values
+</span></span><span class=line><span class=cl>                                        <span class=o>(</span>?, ?<span class=o>)</span>
+</span></span><span class=line><span class=cl>                <span class=p>;</span> <span class=nv>args</span><span class=o>=[</span><span class=m>2</span> test2<span class=o>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>這個原因通常是發生在新增一個 NOT NULL 且沒有 DEFAULT 值的欄位的時候，因為 gh-ost 預設會如下在 session 加上嚴格模式：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>SET</span><span class=w> </span><span class=k>SESSION</span><span class=w> </span><span class=n>time_zone</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;+00:00&#39;</span><span class=p>,</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>sql_mode</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>CONCAT</span><span class=p>(</span><span class=o>@@</span><span class=k>session</span><span class=p>.</span><span class=n>sql_mode</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;,,NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES&#39;</span><span class=p>)</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>我們都知道當 sql_mode 在嚴格模式 (STRICT_ALL_TABLES) 之下時，對於 NOT NULL 沒有預設值的欄位如果在 <code>insert into</code> 和 <code>replace into</code> 沒有給值，就會導致噴錯 <code>doesn't have a default value</code> 而無法新增。</p><p>接下來讓我們複習一下 gh-ost 是如何作資料遷移的：</p><div class=table-wrapper><table><thead><tr><th>應用類型</th><th>原表操作</th><th>新表操作</th></tr></thead><tbody><tr><td>Row Copy</td><td>SELECT</td><td>INSERT IGNORE INTO</td></tr><tr><td>Binlog Apply</td><td>INSERT</td><td>REPLACE INTO</td></tr></tbody></table></div><p>對於原表已經存在的資料 gh-ost 是採用 <code>INSERT IGNORE INTO</code> 來寫到 <code>_gho</code> 表，所以雖然一樣會發生 ERROR 1364，但是 <code>IGNORE</code> 操作只會 <code>warnings</code> 提示，而不會阻擋 <code>INSERT</code>，如下事例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=n>mysql</span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>test</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>***************************</span><span class=w> </span><span class=mi>1</span><span class=p>.</span><span class=w> </span><span class=k>row</span><span class=w> </span><span class=o>***************************</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>       </span><span class=k>Table</span><span class=p>:</span><span class=w> </span><span class=n>test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>Create</span><span class=w> </span><span class=k>Table</span><span class=p>:</span><span class=w> </span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=o>`</span><span class=n>test</span><span class=o>`</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=w> </span><span class=nb>int</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=n>AUTO_INCREMENT</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>test</span><span class=o>`</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=p>(</span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=o>=</span><span class=n>InnoDB</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>CHARSET</span><span class=o>=</span><span class=n>utf8mb4</span><span class=w> </span><span class=k>COLLATE</span><span class=o>=</span><span class=n>utf8mb4_0900_ai_ci</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>mysql</span><span class=o>&gt;</span><span class=w>  </span><span class=k>INSERT</span><span class=w> </span><span class=k>IGNORE</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test</span><span class=p>(</span><span class=n>id</span><span class=p>)</span><span class=w> </span><span class=k>values</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Query</span><span class=w> </span><span class=n>OK</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>row</span><span class=w> </span><span class=n>affected</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=n>warnings</span><span class=w> </span><span class=p>(</span><span class=mi>0</span><span class=p>.</span><span class=mi>00</span><span class=w> </span><span class=n>sec</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>mysql</span><span class=o>&gt;</span><span class=w> </span><span class=k>SHOW</span><span class=w> </span><span class=n>warnings</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>***************************</span><span class=w> </span><span class=mi>1</span><span class=p>.</span><span class=w> </span><span class=k>row</span><span class=w> </span><span class=o>***************************</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>Level</span><span class=p>:</span><span class=w> </span><span class=n>Warning</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>   </span><span class=n>Code</span><span class=p>:</span><span class=w> </span><span class=mi>1364</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Message</span><span class=p>:</span><span class=w> </span><span class=n>Field</span><span class=w> </span><span class=s1>&#39;test&#39;</span><span class=w> </span><span class=n>doesn</span><span class=s1>&#39;t have a default value
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>mysql&gt; SELECT * FROM test;
+</span></span></span><span class=line><span class=cl><span class=s1>+----+--------+
+</span></span></span><span class=line><span class=cl><span class=s1>| id | test_1 |
+</span></span></span><span class=line><span class=cl><span class=s1>+----+--------+
+</span></span></span><span class=line><span class=cl><span class=s1>|  1 |        |
+</span></span></span><span class=line><span class=cl><span class=s1>+----+--------+
+</span></span></span></code></pre></td></tr></table></div></div><p>對於 gh-ost 執行期間 INSERT 進來的新資料是採用 <code>REPLACE INTO</code> 來寫到 <code>_gho</code> 表，會發生 ERROR 1364 並被阻擋 INSERT，如下事例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mysql&gt;  REPLACE INTO test<span class=o>(</span>id<span class=o>)</span> values<span class=o>(</span>2<span class=o>)</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>ERROR <span class=m>1364</span> <span class=o>(</span>HY000<span class=o>)</span>: Field <span class=s1>&#39;test_1&#39;</span> doesn<span class=err>&#39;</span>t have a default value
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>mysql&gt; SELECT * FROM test<span class=p>;</span>
+</span></span><span class=line><span class=cl>+----+--------+
+</span></span><span class=line><span class=cl><span class=p>|</span> id <span class=p>|</span> test_1 <span class=p>|</span>
+</span></span><span class=line><span class=cl>+----+--------+
+</span></span><span class=line><span class=cl><span class=p>|</span>  <span class=m>1</span> <span class=p>|</span>        <span class=p>|</span>
+</span></span><span class=line><span class=cl>+----+--------+
+</span></span></code></pre></td></tr></table></div></div><p>解決方法有兩種：</p><ol><li><p>NOT NULL 欄位都加上默認的 defaults 屬性</p></li><li><p>確保 GLOBAL sql_mode 在非嚴格模式時，可以在 gh-ost 添加 <code>--skip-strict-mode</code> 選項。
+添加此選項後 gh-ost 的 session 連線就不會主動設定嚴格模式了，如下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>SET SESSION <span class=nv>time_zone</span> <span class=o>=</span> <span class=s1>&#39;+00:00&#39;</span>, 
+</span></span><span class=line><span class=cl><span class=nv>sql_mode</span> <span class=o>=</span> CONCAT<span class=o>(</span>@@session.sql_mode, <span class=s1>&#39;,,NO_AUTO_VALUE_ON_ZERO&#39;</span><span class=o>)</span>
+</span></span></code></pre></td></tr></table></div></div></li></ol><h4 id=手動暫時停止-gh-ost-帶來的-loading>手動暫時停止 gh-ost 帶來的 loading</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 暫停 gh-ost 寫入資料</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> throttle <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 檢查目前狀況，可以發現 throttled, commanded by user</span>
+</span></span><span class=line><span class=cl>$ <span class=nb>echo</span> status <span class=p>|</span> nc -U /tmp/gh-ost.test.sample_data_0.sock
+</span></span><span class=line><span class=cl><span class=c1># Migrating `test`.`sample_data_0`; Ghost table is `test`.`_sample_data_0_gst`</span>
+</span></span><span class=line><span class=cl><span class=c1># Migration started at Tue Jun 07 11:56:03 +0200 2016</span>
+</span></span><span class=line><span class=cl><span class=c1># chunk-size: 250; max lag: 1500ms; max-load: map[Threads_connected:20]</span>
+</span></span><span class=line><span class=cl><span class=c1># Throttle additional flag file: /tmp/gh-ost.throttle</span>
+</span></span><span class=line><span class=cl><span class=c1># Serving on unix socket: /tmp/gh-ost.test.sample_data_0.sock</span>
+</span></span><span class=line><span class=cl><span class=c1># Serving on TCP port: 10001</span>
+</span></span><span class=line><span class=cl>Copy: 0/2915 0.0%<span class=p>;</span> Applied: 0<span class=p>;</span> Backlog: 0/100<span class=p>;</span> Elapsed: 59s<span class=o>(</span>copy<span class=o>)</span>, 59s<span class=o>(</span>total<span class=o>)</span><span class=p>;</span> streamer: mysql-bin.000551:68067<span class=p>;</span> ETA: throttled, commanded by user
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># gh-ost 繼續寫入資料</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> no-throttle <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span></code></pre></td></tr></table></div></div><h4 id=如何中斷-gh-ost>如何中斷 gh-ost</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 中斷 gh-ost </span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=nv>panic</span><span class=o>=</span><span class=s1>&#39;tablename&#39;</span> <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span></code></pre></td></tr></table></div></div><h4 id=調整-gh-ost-loading-相關的參數>調整 gh-ost loading 相關的參數</h4><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 查詢</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;chunk-size=?&#34;</span> <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span><span class=line><span class=cl><span class=m>1000</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 修改</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;chunk-size=250&#34;</span> <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span><span class=line><span class=cl><span class=c1># Migrating `test`.`sample_data_0`; Ghost table is `test`.`_sample_data_0_gst`</span>
+</span></span><span class=line><span class=cl><span class=c1># Migration started at Tue Jun 07 11:56:03 +0200 2016</span>
+</span></span><span class=line><span class=cl><span class=c1># chunk-size: 250; max lag: 1500ms; dml-batch-size: 10; max-load: map[Threads_connected:20]</span>
+</span></span><span class=line><span class=cl><span class=c1># Throttle additional flag file: /tmp/gh-ost.throttle</span>
+</span></span><span class=line><span class=cl><span class=c1># Serving on unix socket: /tmp/gh-ost.test.sample_data_0.sock</span>
+</span></span><span class=line><span class=cl><span class=c1># Serving on TCP port: 10001</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 再次查詢</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;chunk-size=?&#34;</span> <span class=p>|</span> nc -U /tmp/gh-ost.dbname.tablename.sock
+</span></span><span class=line><span class=cl><span class=m>250</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=如何調整-primary-key>如何調整 primary key</h4><p>由於 <code>gh-ost</code>要求每次遷移新表和舊表必須共享一個 <code>唯一且NOT NULL</code> 的 <code>KEY(只需要欄位相同，不需要同名)</code>。因此如果當表中只有 <code>primary key</code>時，無法直接調整 <code>primary key</code>，而是需要先新增一個 <code>unique key</code>，再第二次遷移時才能調整 <code>primark key</code>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>#</span><span class=w> </span><span class=err>原表</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>tbl</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>id</span><span class=w> </span><span class=nb>bigint</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>data</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>255</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>new_pk_column</span><span class=w> </span><span class=nb>int</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>(</span><span class=n>id</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=n>gh</span><span class=o>-</span><span class=n>ost</span><span class=w> </span><span class=err>第一次執行</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=n>ddl_query</span><span class=o>=</span><span class=s2>&#34;ADD UNIQUE KEY temp_pk(new_pk_column)&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>tbl</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>id</span><span class=w> </span><span class=nb>bigint</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>data</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>255</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>new_pk_column</span><span class=w> </span><span class=nb>int</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>(</span><span class=n>id</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>UNIQUE</span><span class=w> </span><span class=n>temp_pk</span><span class=p>(</span><span class=n>new_pk_column</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>原表和新表以</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>(</span><span class=n>id</span><span class=p>)</span><span class=w> </span><span class=err>作為</span><span class=w> </span><span class=n>Shared</span><span class=w> </span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=n>gh</span><span class=o>-</span><span class=n>ost</span><span class=w> </span><span class=err>第二次執行</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=n>ddl_query</span><span class=o>=</span><span class=s2>&#34;DROP PRIMARY KEY, 
+</span></span></span><span class=line><span class=cl><span class=s2># DROP KEY temp_pk,
+</span></span></span><span class=line><span class=cl><span class=s2># ADD PRIMARY KEY (new_pk_column)&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>tbl</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>id</span><span class=w> </span><span class=nb>bigint</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>data</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>255</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>new_pk_column</span><span class=w> </span><span class=nb>int</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>(</span><span class=n>new_pk_column</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>原表</span><span class=w> </span><span class=k>UNIQUE</span><span class=w> </span><span class=n>temp_pk</span><span class=p>(</span><span class=n>new_pk_column</span><span class=p>)</span><span class=w> </span><span class=err>和新表</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=p>(</span><span class=n>new_pk_column</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>作為</span><span class=w> </span><span class=n>Shared</span><span class=w> </span><span class=k>key</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h4 id=如何解決-unexpected-database-port>如何解決 Unexpected database port</h4><p>當對雲服務商的 <code>rds</code> 或者 <code>docker</code>， <code>--port</code> 指定為非 <code>3306</code> 時，會因為其內部確實是 <code>3306</code> 而導致未通過驗證，此時可以透過使用 <code>--aliyun-rds</code> 或 <code>--gcp</code> 來跳過驗證。</p><p>參考：<a class=link href=https://github.com/github/gh-ost/issues/631 target=_blank rel=noopener>https://github.com/github/gh-ost/issues/631</a></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 對 rds 或 docker 指定 3306 以外的 port</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--port<span class=o>=</span><span class=m>3307</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--verbose
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># error </span>
+</span></span><span class=line><span class=cl>2020-10-16 16:27:09 FATAL Unexpected database port reported: <span class=m>3306</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 加上 --aliyun-rds 跳過驗證</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--port<span class=o>=</span><span class=m>3307</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--aliyun-rds
+</span></span><span class=line><span class=cl>--verbose
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 正常運作</span>
+</span></span></code></pre></td></tr></table></div></div><h4 id=gh-ost-偷吃步>gh-ost 偷吃步</h4><p>只跑一次 <code>gh-ost</code> 的偷吃步方法，因為 <code>gh-ost</code> 只有在一開始會驗證新舊表是否可以搬遷，所以可以等 <code>gh-ost</code> 建立完新表 <code>gho</code> 後，先暫停複製資料的過程，我們則可以進到 DB 手動 <code>ALTER</code> 新表 <code>gho</code>，此方法可以用來越過某些限制，但可能造成資料損毀，請明確知道自己在做什麼才能使用！</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 透過建立此檔案，讓 gh-ost 建立完新表後就先暫停複製資料(注意：會暫停所有gh-ost)</span>
+</span></span><span class=line><span class=cl>touch /tmp/gh-ost_all_throttle.flag
+</span></span><span class=line><span class=cl><span class=c1># 備註：不使用 throttle-flag-file 是因為必須要 gh-ost 執行後，建立才會生效</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 執行 gh-ost</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--alter<span class=o>=</span><span class=s2>&#34;ADD COLUMN test VARCHAR(10) NOT NULL DEFAULT &#39;&#39;&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>... <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--throttle-additional-flag-file<span class=o>=</span>/tmp/gh-ost_all_throttle.flag <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--execute
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Copy: 0/1 0.0%; Applied: 0; Backlog: 0/1000; Time: 0s(total), 0s(copy); streamer: bin-log.000006:305893; Lag: 0.01s, State: migrating; ETA: N/A</span>
+</span></span><span class=line><span class=cl><span class=c1># Copy: 0/1 0.0%; Applied: 0; Backlog: 0/1000; Time: 1s(total), 1s(copy); streamer: bin-log.000006:311112; Lag: 0.01s, State: throttled, flag-file; ETA: N/A</span>
+</span></span><span class=line><span class=cl><span class=c1># ...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 進到 MySQL 調整新表</span>
+</span></span><span class=line><span class=cl>mysql &gt; ALTER TABLE table_gho ADD INDEX test<span class=o>(</span><span class=sb>`</span><span class=nb>test</span><span class=sb>`</span><span class=o>)</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 刪除 flag</span>
+</span></span><span class=line><span class=cl>rm -rf /tmp/gh-ost_all_throttle.flag
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># gh-ost 正常運行，新的表會同時多一個 test 欄位和 test index</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 執行 gh-ost，讓 throttle 門檻很低，一啟動就暫停</span>
+</span></span><span class=line><span class=cl>gh-ost <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--alter<span class=o>=</span><span class=s2>&#34;ADD COLUMN test VARCHAR(10) NOT NULL DEFAULT &#39;&#39;&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>... <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--max-load<span class=o>=</span><span class=nv>Threads_running</span><span class=o>=</span><span class=m>0</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--execute
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Copy: 0/1 0.0%; Applied: 0; Backlog: 0/1000; Time: 0s(total), 0s(copy); streamer: bin-log.000006:305893; Lag: 0.01s, State: migrating; ETA: N/A</span>
+</span></span><span class=line><span class=cl><span class=c1># Copy: 0/1 0.0%; Applied: 0; Backlog: 0/1000; Time: 1s(total), 1s(copy); streamer: bin-log.000006:311112; Lag: 0.01s, State: throttled, flag-file; ETA: N/A</span>
+</span></span><span class=line><span class=cl><span class=c1># ...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 進到 MySQL 調整新表</span>
+</span></span><span class=line><span class=cl>mysql &gt; ALTER TABLE table_gho ADD INDEX test<span class=o>(</span><span class=sb>`</span><span class=nb>test</span><span class=sb>`</span><span class=o>)</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 調回門檻</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;max-load=Threads_running=200&#34;</span> <span class=p>|</span> nc -U /tmp/gh-ost.test.sample_data_0.sock
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># gh-ost 正常運行，新的表會同時多一個 test 欄位和 test index</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=pt-osc-方案>pt-osc 方案</h2><h3 id=執行>執行</h3><ol><li><p>給予super權限</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>SELECT</span><span class=w> </span><span class=k>host</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>mysql</span><span class=p>.</span><span class=k>user</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=k>user</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;OdLd&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GRANT</span><span class=w> </span><span class=n>PROCESS</span><span class=p>,</span><span class=n>SUPER</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=o>*</span><span class=p>.</span><span class=o>*</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=s1>&#39;OdLd&#39;</span><span class=o>@</span><span class=s1>&#39;&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li><li><p>基本測試</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>pt-online-schema-change <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--host<span class=o>=</span>master_host  --port<span class=o>=</span><span class=m>3306</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=nv>u</span><span class=o>=</span>OdLd,D<span class=o>=</span>database_name,t<span class=o>=</span>table_name <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--ask-pass <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#如果新增的欄位為Not Null 則必須設定Default值,否則pt工具會失敗` \</span>
+</span></span><span class=line><span class=cl>--alter <span class=s2>&#34;add column test varchar(50) not null default &#39;&#39; after remark&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--print <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--statistics <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#slave延遲時間` \</span>
+</span></span><span class=line><span class=cl>--max-lag<span class=o>=</span><span class=m>1500</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#暫停多久後再繼續` \</span>
+</span></span><span class=line><span class=cl>--check-interval<span class=o>=</span><span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#達到 --max-load 會暫停程序` \</span>
+</span></span><span class=line><span class=cl>--max-load <span class=nv>Threads_running</span><span class=o>=</span><span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#達到 --critical-load 會停止程序` \</span>
+</span></span><span class=line><span class=cl>--critical-load <span class=nv>Threads_running</span><span class=o>=</span><span class=m>400</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#若不想立刻切換新表，請註解下方，但不建議` \</span>
+</span></span><span class=line><span class=cl>--no-drop-trigger --no-swap-tables <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#執行前建議先用dry-run做基本的測試` \</span>
+</span></span><span class=line><span class=cl>--charset<span class=o>=</span>utf8 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--dry-run 
+</span></span></code></pre></td></tr></table></div></div></li><li><p>正式執行</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>pt-online-schema-change <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--host<span class=o>=</span>master_host  --port<span class=o>=</span><span class=m>3306</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=nv>u</span><span class=o>=</span>OdLd,D<span class=o>=</span>database_name,t<span class=o>=</span>table_name <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--ask-pass <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#如果新增的欄位為Not Null 則必須設定Default值,否則pt工具會失敗` \</span>
+</span></span><span class=line><span class=cl>--alter <span class=s2>&#34;add column test varchar(50) not null default &#39;&#39;  after remark&#34;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--print <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--statistics <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#slave延遲時間` \</span>
+</span></span><span class=line><span class=cl>--max-lag<span class=o>=</span><span class=m>1500</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#暫停多久後再繼續` \</span>
+</span></span><span class=line><span class=cl>--check-interval<span class=o>=</span><span class=m>5</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#達到 --max-load 會暫停程序` \</span>
+</span></span><span class=line><span class=cl>--max-load <span class=nv>Threads_running</span><span class=o>=</span><span class=m>200</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#達到 --critical-load 會停止程序` \</span>
+</span></span><span class=line><span class=cl>--critical-load <span class=nv>Threads_running</span><span class=o>=</span><span class=m>400</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span><span class=sb>`</span><span class=c1>#若不想立刻切換新表，請註解下方，但不建議` \</span>
+</span></span><span class=line><span class=cl>--no-drop-trigger --no-swap-tables <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--charset<span class=o>=</span>utf8 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>--execute
+</span></span></code></pre></td></tr></table></div></div></li><li><p>如果要手動切換 table－</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>#</span><span class=w> </span><span class=err>交換</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>RENAME</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>origan_table</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>origan_table_old</span><span class=p>,</span><span class=n>new_table</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>origan_table</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>刪除</span><span class=w> </span><span class=k>Trigger</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DROP</span><span class=w> </span><span class=k>TRIGGER</span><span class=w> </span><span class=k>IF</span><span class=w> </span><span class=k>EXISTS</span><span class=w> </span><span class=n>database_name</span><span class=p>.</span><span class=n>pt_osc_database_name_table_name_del</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DROP</span><span class=w> </span><span class=k>TRIGGER</span><span class=w> </span><span class=k>IF</span><span class=w> </span><span class=k>EXISTS</span><span class=w> </span><span class=n>database_name</span><span class=p>.</span><span class=n>pt_osc_database_name_table_name_upd</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DROP</span><span class=w> </span><span class=k>TRIGGER</span><span class=w> </span><span class=k>IF</span><span class=w> </span><span class=k>EXISTS</span><span class=w> </span><span class=n>database_name</span><span class=p>.</span><span class=n>pt_osc_database_name_table_name_ins</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>刪除舊表</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=k>IF</span><span class=w> </span><span class=k>EXISTS</span><span class=w> </span><span class=n>origan_table_old</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>移除權限</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>REVOKE</span><span class=w> </span><span class=n>PROCESS</span><span class=p>,</span><span class=n>SUPER</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=o>*</span><span class=p>.</span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=s1>&#39;OdLd&#39;</span><span class=o>@</span><span class=s1>&#39;&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li></ol></section><footer class=article-footer><section class=article-tags><a href=/tags/sop/>SOP</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/mysql-mts/><div class=article-details><h2 class=article-title>並行複製 (Multi-Thread Slave, MTS)</h2></div></a></article><article><a href=/p/mysql-implicit-lock/><div class=article-details><h2 class=article-title>隱式鎖</h2></div></a></article><article><a href=/p/mysql-gtid/><div class=article-details><h2 class=article-title>GTID</h2></div></a></article><article><a href=/p/mysql-group-commit/><div class=article-details><h2 class=article-title>Group Commit</h2></div></a></article><article><a href=/p/mysql-fulltext-index/><div class=article-details><h2 class=article-title>MySQL FullText Index(全文檢索)</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

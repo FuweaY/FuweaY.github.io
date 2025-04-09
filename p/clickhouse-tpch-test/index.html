@@ -1,0 +1,850 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="使用 TPC-H 測試 ClickHouse"><title>ClickHouse TPC-H Test</title>
+<link rel=canonical href=https://FuweaY.github.io/p/clickhouse-tpch-test/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="ClickHouse TPC-H Test"><meta property='og:description' content="使用 TPC-H 測試 ClickHouse"><meta property='og:url' content='https://FuweaY.github.io/p/clickhouse-tpch-test/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2024-10-16T12:00:00+08:00'><meta property='article:modified_time' content='2024-10-16T12:00:00+08:00'><meta name=twitter:title content="ClickHouse TPC-H Test"><meta name=twitter:description content="使用 TPC-H 測試 ClickHouse"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#安裝>安裝</a></li><li><a href=#mysql>MySQL</a></li><li><a href=#clickhouse>ClickHouse</a></li><li><a href=#mysql--clickhouse-測試>MySQL & ClickHouse 測試</a><ol><li><a href=#規格>規格</a></li><li><a href=#測試結果>測試結果</a></li></ol></li><li><a href=#query-內容>Query 內容</a><ol><li><a href=#q1單張大表-group-by>Q1：單張大表 GROUP BY</a></li><li><a href=#q2五張表-join>Q2：五張表 JOIN</a></li></ol></li><li><a href=#總結>總結</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/clickhouse/>ClickHouse</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/clickhouse-tpch-test/>ClickHouse TPC-H Test</a></h2><h3 class=article-subtitle>使用 TPC-H 測試 ClickHouse</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Oct 16, 2024</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 12 分鐘</time></div></footer></div></header><section class=article-content><h1 id=tpc-h-測試>TPC-H 測試</h1><h2 id=安裝>安裝</h2><ul><li><p>到 TPC 官方下載 <a class=link href="http://tpc.org/TPC_Documents_Current_Versions/download_programs/tools-download-request5.asp?bm_type=TPC-H&amp;bm_vers=3.0.0&amp;mode=CURRENT-ONLY" target=_blank rel=noopener>TPC-H 工具</a></p><p>這個步驟需填寫 email，下載連結會寄到 email</p></li><li><p>解壓縮檔案，並建立 Makefile 檔案</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>unzip 025654ff-3a66-4e25-9f7c-ee2f2e6bbf18-tpc-h-tool.zip
+</span></span><span class=line><span class=cl>mv <span class=s1>&#39;TPC-H V3.0.1&#39;</span> <span class=s1>&#39;TPC-H_Tools_v3.0.1&#39;</span>
+</span></span><span class=line><span class=cl><span class=nb>cd</span> ./TPC-H_Tools_v3.0.1/dbgen
+</span></span><span class=line><span class=cl>cp makefile.suite Makefile
+</span></span></code></pre></td></tr></table></div></div></li></ul><h2 id=mysql>MySQL</h2><ul><li><p>修改 Makefile 中的 CC、DATABASE、MACHINE、WORKLOAD 等參數設定</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>-&gt; ~ vim Makefile
+</span></span><span class=line><span class=cl><span class=nv>CC</span>      <span class=o>=</span> gcc
+</span></span><span class=line><span class=cl><span class=c1># Current values for DATABASE are: INFORMIX, DB2, TDAT (Teradata)</span>
+</span></span><span class=line><span class=cl><span class=c1>#                                  SQLSERVER, SYBASE, ORACLE, VECTORWISE</span>
+</span></span><span class=line><span class=cl><span class=c1># Current values for MACHINE are:  ATT, DOS, HP, IBM, ICL, MVS,</span>
+</span></span><span class=line><span class=cl><span class=c1>#                                  SGI, SUN, U2200, VMS, LINUX, WIN32</span>
+</span></span><span class=line><span class=cl><span class=c1># Current values for WORKLOAD are:  TPCH</span>
+</span></span><span class=line><span class=cl><span class=nv>DATABASE</span><span class=o>=</span> MYSQL
+</span></span><span class=line><span class=cl><span class=nv>MACHINE</span> <span class=o>=</span> LINUX
+</span></span><span class=line><span class=cl><span class=nv>WORKLOAD</span> <span class=o>=</span> TPCH
+</span></span></code></pre></td></tr></table></div></div></li><li><p>修改 tpcd.h 文件，新增 mysql 相關定義</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>-&gt; ~ vim tpcd.h 
+</span></span><span class=line><span class=cl><span class=c1>#ifdef MYSQL</span>
+</span></span><span class=line><span class=cl><span class=c1>#define GEN_QUERY_PLAN &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define START_TRAN &#34;START TRANSACTION&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define END_TRAN &#34;COMMIT&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_OUTPUT &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_ROWCOUNT &#34;limit %d;\n&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_DBASE &#34;use %s;\n&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#endif</span>
+</span></span></code></pre></td></tr></table></div></div></li><li><p>編譯</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>make
+</span></span></code></pre></td></tr></table></div></div><p>編譯後該目錄會多出 2 個可執行檔：</p><ul><li>dbgen：產生測試數據的工具</li><li>qgen：產生 SQL 語句的工具</li></ul></li><li><p>透過 dbgen 產生測試數據</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 產生 5G 數據</span>
+</span></span><span class=line><span class=cl>./dbgen -s <span class=m>5</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 將數據文件放到資料夾方便處理</span>
+</span></span><span class=line><span class=cl>mkdir <span class=nb>test</span>
+</span></span><span class=line><span class=cl>mv *.tbl test/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>-&gt; ~ ll -h tpch5/
+</span></span><span class=line><span class=cl>總計 5.3G
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 117M 12月 <span class=m>23</span> 16:36 customer.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 3.6G 12月 <span class=m>23</span> 16:36 lineitem.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 2.2K 12月 <span class=m>23</span> 16:36 nation.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 830M 12月 <span class=m>23</span> 16:36 orders.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 573M 12月 <span class=m>23</span> 16:36 partsupp.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 116M 12月 <span class=m>23</span> 16:36 part.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root  <span class=m>389</span> 12月 <span class=m>23</span> 16:36 region.tbl
+</span></span><span class=line><span class=cl>-rw-r--r-- <span class=m>1</span> root root 6.8M 12月 <span class=m>23</span> 16:36 supplier.tbl
+</span></span></code></pre></td></tr></table></div></div><ul><li><p>說明</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>数据量的大小对查询速度有直接的影响，TPC-H中使用SF描述数据量，1SF对应1 GB单位。1000SF，即1 TB。1SF对应的数据量只是8个表的总数据量不包括索引等空间占用，准备数据时需预留更多空间。
+</span></span><span class=line><span class=cl>  -s表示sf值，如-s 1表示生成1G数据：
+</span></span><span class=line><span class=cl>    -s 0.16最大表lineitem约96万条数据
+</span></span><span class=line><span class=cl>    -s 1.6最大表lineitem约960万条数据
+</span></span><span class=line><span class=cl>    -s 16最大表lineitem约0.96亿条数据
+</span></span><span class=line><span class=cl>    -s 20最大表lineitem约1.2亿条数据
+</span></span><span class=line><span class=cl>  -S表示当前命令生成第几个 chunk。
+</span></span><span class=line><span class=cl>  -C表示一共分成几个chunk。一条语句只能生成一个 chunk。
+</span></span><span class=line><span class=cl>  -f表示强制生成，会替换之前生成的.tbl文件
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>更多dbgen命令说明请使用./dbgen --help查看：
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>-C &lt;n&gt; – separate data <span class=nb>set</span> into &lt;n&gt; chunks <span class=o>(</span>requires -S, default: 1<span class=o>)</span>
+</span></span><span class=line><span class=cl>-f – force. Overwrite existing files
+</span></span><span class=line><span class=cl>-h – display this message
+</span></span><span class=line><span class=cl>-q – <span class=nb>enable</span> QUIET mode
+</span></span><span class=line><span class=cl>-s &lt;n&gt; – <span class=nb>set</span> Scale Factor <span class=o>(</span>SF<span class=o>)</span> to &lt;n&gt; <span class=o>(</span>default: 1<span class=o>)</span>
+</span></span><span class=line><span class=cl>-S &lt;n&gt; – build the &lt;n&gt;th step of the data/update <span class=nb>set</span> <span class=o>(</span>used with -C or -U<span class=o>)</span>
+</span></span><span class=line><span class=cl>-U &lt;n&gt; – generate &lt;n&gt; update sets
+</span></span><span class=line><span class=cl>-v – <span class=nb>enable</span> VERBOSE mode
+</span></span><span class=line><span class=cl>-b &lt;s&gt; – load distributions <span class=k>for</span> &lt;s&gt; <span class=o>(</span>default: dists.dss<span class=o>)</span>
+</span></span><span class=line><span class=cl>-d &lt;n&gt; – split deletes between &lt;n&gt; files <span class=o>(</span>requires -U<span class=o>)</span>
+</span></span><span class=line><span class=cl>-i &lt;n&gt; – split inserts between &lt;n&gt; files <span class=o>(</span>requires -U<span class=o>)</span>
+</span></span><span class=line><span class=cl>-T c – generate cutomers ONLY
+</span></span><span class=line><span class=cl>-T l – generate nation/region ONLY
+</span></span><span class=line><span class=cl>-T L – generate lineitem ONLY
+</span></span><span class=line><span class=cl>-T n – generate nation ONLY
+</span></span><span class=line><span class=cl>-T o – generate orders/lineitem ONLY
+</span></span><span class=line><span class=cl>-T O – generate orders ONLY
+</span></span><span class=line><span class=cl>-T p – generate parts/partsupp ONLY
+</span></span><span class=line><span class=cl>-T P – generate parts ONLY
+</span></span><span class=line><span class=cl>-T r – generate region ONLY
+</span></span><span class=line><span class=cl>-T s – generate suppliers ONLY
+</span></span><span class=line><span class=cl>-T S – generate partsupp ONLY
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>To generate the <span class=nv>SF</span><span class=o>=</span><span class=m>1</span> <span class=o>(</span>1GB<span class=o>)</span>, validation database population, use:
+</span></span><span class=line><span class=cl>  dbgen -vf -s <span class=m>1</span>
+</span></span><span class=line><span class=cl>To generate updates <span class=k>for</span> a <span class=nv>SF</span><span class=o>=</span><span class=m>1</span> <span class=o>(</span>1GB<span class=o>)</span>, use:
+</span></span><span class=line><span class=cl>  dbgen -v -U <span class=m>1</span> -s <span class=m>1</span>
+</span></span></code></pre></td></tr></table></div></div></li></ul></li><li><p>建立 schema</p><ul><li><p>schema</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span><span class=lnt>91
+</span><span class=lnt>92
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>part</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_name</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>55</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_mfgr</span><span class=w>        </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_brand</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_type</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_size</span><span class=w>        </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_container</span><span class=w>   </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_retailprice</span><span class=w> </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>23</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>p_partkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>supplier</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_name</span><span class=w>        </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_address</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>40</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_nationkey</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_phone</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_acctbal</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>101</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>s_suppkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>partsupp</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_availqty</span><span class=w>    </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_supplycost</span><span class=w>  </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w>  </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>199</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>ps_partkey</span><span class=p>,</span><span class=w> </span><span class=n>ps_suppkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>customer</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_custkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_name</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_address</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>40</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_nationkey</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_phone</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_acctbal</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w>   </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_mktsegment</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>117</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>c_custkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>orders</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderkey</span><span class=w>       </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_custkey</span><span class=w>        </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderstatus</span><span class=w>    </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_totalprice</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderdate</span><span class=w>      </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderpriority</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_clerk</span><span class=w>          </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_shippriority</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_comment</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>79</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>o_orderkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>lineitem</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_orderkey</span><span class=w>    </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_linenumber</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_quantity</span><span class=w>    </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_extendedprice</span><span class=w>  </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_discount</span><span class=w>    </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_tax</span><span class=w>         </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_returnflag</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_linestatus</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipdate</span><span class=w>    </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_commitdate</span><span class=w>  </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_receiptdate</span><span class=w> </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipinstruct</span><span class=w> </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipmode</span><span class=w>     </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_comment</span><span class=w>      </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>44</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>l_orderkey</span><span class=p>,</span><span class=w> </span><span class=n>l_linenumber</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>nation</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_nationkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_name</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_regionkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_comment</span><span class=w>    </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>152</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>n_nationkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>region</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_regionkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_name</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_comment</span><span class=w>    </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>152</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=p>(</span><span class=n>r_regionkey</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>innodb</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>mysql -uroot  -S/var/lib/mysql-replica01/mysql.sock -e<span class=s2>&#34;CREATE DATABASE test&#34;</span>
+</span></span><span class=line><span class=cl>mysql -uroot  -S/var/lib/mysql-replica01/mysql.sock -Dtest &lt; tpch_mysql_schema.sql
+</span></span></code></pre></td></tr></table></div></div></li><li><p>匯數據</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>#</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=err>端需加上</span><span class=w> </span><span class=c1>--local-infile=1 才能 LOAD DATA
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>mysql</span><span class=w> </span><span class=o>-</span><span class=n>uroot</span><span class=w>  </span><span class=o>-</span><span class=n>S</span><span class=o>/</span><span class=n>var</span><span class=o>/</span><span class=n>lib</span><span class=o>/</span><span class=n>mysql</span><span class=o>-</span><span class=n>replica01</span><span class=o>/</span><span class=n>mysql</span><span class=p>.</span><span class=n>sock</span><span class=w> </span><span class=c1>--local-infile=1 -Dtest
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>#</span><span class=w> </span><span class=n>local_infile</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=err>才能</span><span class=w> </span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>local_infile</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;ON&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/customer.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>customer</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/lineitem.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>lineitem</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/nation.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>nation</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/orders.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>orders</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/part.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>part</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/partsupp.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>partsupp</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/region.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>region</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOAD</span><span class=w> </span><span class=k>DATA</span><span class=w> </span><span class=k>LOCAL</span><span class=w> </span><span class=n>INFILE</span><span class=w> </span><span class=s1>&#39;/root/TPC-H_Tools_v3.0.1/dbgen-clickhouse/test_data/supplier.tbl&#39;</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>supplier</span><span class=w> </span><span class=n>FIELDS</span><span class=w> </span><span class=n>TERMINATED</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;|&#39;</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li></ul><h2 id=clickhouse>ClickHouse</h2><ul><li><p>修改 Makefile 中的 CC、DATABASE、MACHINE、WORKLOAD 等參數設定</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>-&gt; ~ vim Makefile
+</span></span><span class=line><span class=cl><span class=nv>CC</span>      <span class=o>=</span> gcc
+</span></span><span class=line><span class=cl><span class=c1># Current values for DATABASE are: INFORMIX, DB2, TDAT (Teradata)</span>
+</span></span><span class=line><span class=cl><span class=c1>#                                  SQLSERVER, SYBASE, ORACLE, VECTORWISE</span>
+</span></span><span class=line><span class=cl><span class=c1># Current values for MACHINE are:  ATT, DOS, HP, IBM, ICL, MVS,</span>
+</span></span><span class=line><span class=cl><span class=c1>#                                  SGI, SUN, U2200, VMS, LINUX, WIN32</span>
+</span></span><span class=line><span class=cl><span class=c1># Current values for WORKLOAD are:  TPCH</span>
+</span></span><span class=line><span class=cl><span class=nv>DATABASE</span><span class=o>=</span> CLICKHOUSE
+</span></span><span class=line><span class=cl><span class=nv>MACHINE</span> <span class=o>=</span> LINUX
+</span></span><span class=line><span class=cl><span class=nv>WORKLOAD</span> <span class=o>=</span> TPCH
+</span></span></code></pre></td></tr></table></div></div></li><li><p>修改 tpcd.h 文件，新增 mysql 相關定義</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>-&gt; ~ vim tpcd.h 
+</span></span><span class=line><span class=cl><span class=c1>#ifdef CLICKHOUSE</span>
+</span></span><span class=line><span class=cl><span class=c1>#define GEN_QUERY_PLAN &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define START_TRAN &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define END_TRAN &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_OUTPUT &#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_ROWCOUNT &#34;limit %d;\n&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#define SET_DBASE &#34;use %s;\n&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1>#endif</span>
+</span></span></code></pre></td></tr></table></div></div></li><li><p>編譯</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>make
+</span></span></code></pre></td></tr></table></div></div><p>編譯後該目錄會多出 2 個可執行檔：</p><ul><li>dbgen：產生測試數據的工具</li><li>qgen：產生 SQL 語句的工具</li></ul></li><li><p>產生測試數據</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>./dbgen -s <span class=m>5</span>
+</span></span><span class=line><span class=cl>mkdir test_data
+</span></span><span class=line><span class=cl>mv *.tbl test_data
+</span></span></code></pre></td></tr></table></div></div></li><li><p>匯入數據</p><ul><li><p>CH schema</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>part</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_name</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>55</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_mfgr</span><span class=w>        </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_brand</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_type</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_size</span><span class=w>        </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_container</span><span class=w>   </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_retailprice</span><span class=w> </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>23</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>p_partkey</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>supplier</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_name</span><span class=w>        </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_address</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>40</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_nationkey</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_phone</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_acctbal</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>101</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>s_suppkey</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>partsupp</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_availqty</span><span class=w>    </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_supplycost</span><span class=w>  </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w>  </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>ps_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>199</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>ps_partkey</span><span class=p>,</span><span class=w> </span><span class=n>ps_suppkey</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>customer</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_custkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_name</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_address</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>40</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_nationkey</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_phone</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_acctbal</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w>   </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_mktsegment</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>c_comment</span><span class=w>     </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>117</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>c_custkey</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>orders</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderkey</span><span class=w>       </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_custkey</span><span class=w>        </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderstatus</span><span class=w>    </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_totalprice</span><span class=w>     </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderdate</span><span class=w>      </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_orderpriority</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_clerk</span><span class=w>          </span><span class=nb>char</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_shippriority</span><span class=w>   </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>o_comment</span><span class=w>        </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>79</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>o_orderkey</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>lineitem</span><span class=w> </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_orderkey</span><span class=w>    </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_partkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_suppkey</span><span class=w>     </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_linenumber</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_quantity</span><span class=w>    </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_extendedprice</span><span class=w>  </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_discount</span><span class=w>    </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_tax</span><span class=w>         </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>15</span><span class=p>,</span><span class=mi>2</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_returnflag</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_linestatus</span><span class=w>  </span><span class=nb>char</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipdate</span><span class=w>    </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_commitdate</span><span class=w>  </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_receiptdate</span><span class=w> </span><span class=nb>date</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipinstruct</span><span class=w> </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipmode</span><span class=w>     </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_comment</span><span class=w>      </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>44</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>l_orderkey</span><span class=p>,</span><span class=w> </span><span class=n>l_linenumber</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>nation</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_nationkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_name</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_regionkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>n_comment</span><span class=w>    </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>152</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>n_nationkey</span><span class=p>);</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>create</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>region</span><span class=w>  </span><span class=p>(</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_regionkey</span><span class=w>  </span><span class=nb>bigint</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_name</span><span class=w>       </span><span class=nb>char</span><span class=p>(</span><span class=mi>25</span><span class=p>)</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=k>null</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>r_comment</span><span class=w>    </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>152</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>engine</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=p>(</span><span class=n>r_regionkey</span><span class=p>);</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>q</span><span class=w> </span><span class=s2>&#34;CREATE DATABASE IF NOT EXISTS test&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>n</span><span class=w> </span><span class=c1>--queries-file tpch_ch_schema.sql -d test
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.customer format CSV&#34; &lt; customer.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.lineitem format CSV&#34; &lt; lineitem.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.nation format CSV&#34; &lt; nation.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.orders format CSV&#34; &lt; orders.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.partsupp format CSV&#34; &lt; partsupp.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.part format CSV&#34; &lt; part.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.region format CSV&#34; &lt; region.tbl
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>clickhouse</span><span class=w> </span><span class=n>client</span><span class=w> </span><span class=o>-</span><span class=n>m</span><span class=w> </span><span class=c1>--format_csv_delimiter=&#34;|&#34; --query=&#34;insert into test.supplier format CSV&#34; &lt; supplier.tbl
+</span></span></span></code></pre></td></tr></table></div></div></li></ul><h2 id=mysql--clickhouse-測試>MySQL & ClickHouse 測試</h2><h3 id=規格>規格</h3><ul><li>機器規格（個人 Citrix Linux 機器）：<ul><li>CPU：2 Core</li><li>Memory：8 GB</li></ul></li><li>DB 皆使用 7GB memory</li><li>DB 皆為單 node</li><li>各個 Table 資料量：<ul><li>lineitem：59,986,052</li><li>customer：1,500,000</li><li>nation：25</li><li>orders：15,000,000</li><li>part：2,000,000</li><li>partsupp：8,000,000</li><li>region：5</li><li>supplier：100,000</li></ul></li></ul><h3 id=測試結果>測試結果</h3><ul><li><p>寫入後佔用空間量 (MySQL 約為 ClickHouse 的 4 倍)</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=n>localhost</span><span class=w> </span><span class=p>:)</span><span class=w> </span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                 </span><span class=k>table</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                 </span><span class=n>formatReadableSize</span><span class=p>(</span><span class=k>sum</span><span class=p>(</span><span class=n>bytes</span><span class=p>))</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>size</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>             </span><span class=k>FROM</span><span class=w> </span><span class=k>system</span><span class=p>.</span><span class=n>parts</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>             </span><span class=k>WHERE</span><span class=w> </span><span class=n>active</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>             </span><span class=k>AND</span><span class=w> </span><span class=k>database</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;test&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>             </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>table</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>table</span><span class=err>────┬─</span><span class=k>size</span><span class=err>───────┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>lineitem</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=mi>2</span><span class=p>.</span><span class=mi>70</span><span class=w> </span><span class=n>GiB</span><span class=w>   </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>orders</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>614</span><span class=p>.</span><span class=mi>02</span><span class=w> </span><span class=n>MiB</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>partsupp</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=mi>447</span><span class=p>.</span><span class=mi>38</span><span class=w> </span><span class=n>MiB</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>customer</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=mi>121</span><span class=p>.</span><span class=mi>90</span><span class=w> </span><span class=n>MiB</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>part</span><span class=w>     </span><span class=err>│</span><span class=w> </span><span class=mi>89</span><span class=p>.</span><span class=mi>70</span><span class=w> </span><span class=n>MiB</span><span class=w>  </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>supplier</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=mi>7</span><span class=p>.</span><span class=mi>55</span><span class=w> </span><span class=n>MiB</span><span class=w>   </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>nation</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>1</span><span class=p>.</span><span class=mi>66</span><span class=w> </span><span class=n>KiB</span><span class=w>   </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>region</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>523</span><span class=p>.</span><span class=mi>00</span><span class=w> </span><span class=n>B</span><span class=w>   </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└──────────┴────────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>8</span><span class=w> </span><span class=k>rows</span><span class=w> </span><span class=k>in</span><span class=w> </span><span class=k>set</span><span class=p>.</span><span class=w> </span><span class=n>Elapsed</span><span class=p>:</span><span class=w> </span><span class=mi>0</span><span class=p>.</span><span class=mi>008</span><span class=w> </span><span class=n>sec</span><span class=p>.</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>SELECT</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>TABLE_NAME</span><span class=p>,</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>CASE</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>WHEN</span><span class=w> </span><span class=n>floor</span><span class=p>((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>THEN</span><span class=w> </span><span class=n>CONCAT</span><span class=p>(</span><span class=n>ROUND</span><span class=p>(((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>),</span><span class=mi>2</span><span class=p>),</span><span class=w> </span><span class=s2>&#34;GB&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>WHEN</span><span class=w> </span><span class=n>floor</span><span class=p>((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>THEN</span><span class=w> </span><span class=n>CONCAT</span><span class=p>(</span><span class=n>ROUND</span><span class=p>(((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=w> </span><span class=p>),</span><span class=mi>2</span><span class=p>),</span><span class=w> </span><span class=s2>&#34;MB&#34;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>WHEN</span><span class=w> </span><span class=n>floor</span><span class=p>((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>THEN</span><span class=w> </span><span class=n>CONCAT</span><span class=p>(</span><span class=n>ROUND</span><span class=p>(((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1024</span><span class=p>),</span><span class=mi>2</span><span class=p>),</span><span class=w> </span><span class=s2>&#34;KB&#34;</span><span class=p>)</span><span class=w>        
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>ELSE</span><span class=w> </span><span class=n>CONCAT</span><span class=p>(((</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>INDEX_LENGTH</span><span class=p>)),</span><span class=w> </span><span class=s2>&#34;Byte&#34;</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>END</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=o>`</span><span class=k>size</span><span class=o>`</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w>  
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>information_schema</span><span class=p>.</span><span class=n>TABLES</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>TABLE_SCHEMA</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;test&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>DATA_LENGTH</span><span class=w> </span><span class=k>DESC</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>+</span><span class=c1>------------+----------+
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>|</span><span class=w> </span><span class=k>TABLE_NAME</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>size</span><span class=w>     </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>+</span><span class=c1>------------+----------+
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>|</span><span class=w> </span><span class=n>lineitem</span><span class=w>   </span><span class=o>|</span><span class=w> </span><span class=mi>8</span><span class=p>.</span><span class=mi>05</span><span class=n>GB</span><span class=w>   </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>orders</span><span class=w>     </span><span class=o>|</span><span class=w> </span><span class=mi>2</span><span class=p>.</span><span class=mi>06</span><span class=n>GB</span><span class=w>   </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>partsupp</span><span class=w>   </span><span class=o>|</span><span class=w> </span><span class=mi>2</span><span class=p>.</span><span class=mi>03</span><span class=n>GB</span><span class=w>   </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>part</span><span class=w>       </span><span class=o>|</span><span class=w> </span><span class=mi>329</span><span class=p>.</span><span class=mi>89</span><span class=n>MB</span><span class=w> </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>customer</span><span class=w>   </span><span class=o>|</span><span class=w> </span><span class=mi>290</span><span class=p>.</span><span class=mi>84</span><span class=n>MB</span><span class=w> </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>supplier</span><span class=w>   </span><span class=o>|</span><span class=w> </span><span class=mi>18</span><span class=p>.</span><span class=mi>55</span><span class=n>MB</span><span class=w>  </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>nation</span><span class=w>     </span><span class=o>|</span><span class=w> </span><span class=mi>16</span><span class=p>.</span><span class=mi>00</span><span class=n>KB</span><span class=w>  </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>|</span><span class=w> </span><span class=n>region</span><span class=w>     </span><span class=o>|</span><span class=w> </span><span class=mi>16</span><span class=p>.</span><span class=mi>00</span><span class=n>KB</span><span class=w>  </span><span class=o>|</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>+</span><span class=c1>------------+----------+
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>8</span><span class=w> </span><span class=k>rows</span><span class=w> </span><span class=k>in</span><span class=w> </span><span class=k>set</span><span class=w> </span><span class=p>(</span><span class=mi>0</span><span class=p>.</span><span class=mi>01</span><span class=w> </span><span class=n>sec</span><span class=p>)</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div></li><li><p>無任何優化</p></li></ul><div class=table-wrapper><table><thead><tr><th>TPC-H 語法</th><th>語法類型</th><th>MySQL</th><th>ClickHouse</th></tr></thead><tbody><tr><td>1.sql</td><td>lineitem GROUP BY</td><td>1m17.663s</td><td>0m1.780s</td></tr><tr><td>2.sql</td><td>part, supplier, partsupp, nation, region 五表 JOIN</td><td>0m22.257s</td><td>2m17.674s</td></tr><tr><td>3.sql</td><td>customer, orders, lineitem 三表 JOIN</td><td>0m29.132s</td><td>0m3.624s</td></tr><tr><td>4.sql</td><td></td><td>0m26.961s</td><td>0m1.760s</td></tr><tr><td>5.sql</td><td></td><td>0m35.477s</td><td>0m5.084s</td></tr><tr><td>6.sql</td><td></td><td>0m0.012s</td><td>0m0.571s</td></tr><tr><td>7.sql</td><td></td><td>0m57.946s</td><td>0m17.775s</td></tr><tr><td>8.sql</td><td></td><td>0m57.167s</td><td>0m48.609s</td></tr><tr><td>9.sql</td><td></td><td>4m13.980s</td><td>4m48.043s</td></tr><tr><td>10.sql</td><td></td><td>0m59.013s</td><td>0m3.348s</td></tr><tr><td>11.sql</td><td></td><td>0m0.010s</td><td>0m4.750s</td></tr><tr><td>12.sql</td><td></td><td>0m33.102s</td><td>0m1.271s</td></tr><tr><td>13.sql</td><td></td><td>0m20.790s</td><td>0m3.518s</td></tr><tr><td>14.sql</td><td></td><td>0m0.013s</td><td>0m0.925s</td></tr><tr><td>15.sql</td><td></td><td>0m26.780s</td><td>0m1.196s</td></tr><tr><td>16.sql</td><td></td><td>0m10.672s</td><td>0m1.082s</td></tr><tr><td>17.sql</td><td></td><td>0m0.010s</td><td>0m2.975s</td></tr><tr><td>18.sql</td><td></td><td>0m28.808s</td><td>0m7.432s</td></tr><tr><td>19.sql</td><td></td><td>0m40.692s</td><td>超過 30 m</td></tr><tr><td>20.sql</td><td></td><td>0m47.100s</td><td>0m3.690s</td></tr><tr><td>21.sql</td><td></td><td>1m47.974s</td><td>0m36.074s</td></tr><tr><td>22.sql</td><td></td><td>0m0.011s</td><td>0m0.371s</td></tr></tbody></table></div><p><img src=/p/clickhouse-tpch-test/chart.png width=1048 height=465 srcset="/p/clickhouse-tpch-test/chart_hu_2b76202529ec5c71.png 480w, /p/clickhouse-tpch-test/chart_hu_5037b88156a11fdb.png 1024w" loading=lazy class=gallery-image data-flex-grow=225 data-flex-basis=540px></p><div class=table-wrapper><table><thead><tr><th>TPC-H 語法</th><th>語法類型</th><th>MySQL</th><th>ClickHouse</th></tr></thead><tbody><tr><td>1.sql</td><td>lineitem GROUP BY</td><td>2m35.400s</td><td>0m4.737s</td></tr><tr><td>2.sql</td><td>part, supplier, partsupp, nation, region 五表 JOIN</td><td>0m44.018s</td><td>9m12.907s</td></tr><tr><td>3.sql</td><td>customer, orders, lineitem 三表 JOIN</td><td>1m3.439s</td><td>0m8.025s</td></tr><tr><td>4.sql</td><td></td><td>1m3.102s</td><td>0m3.722s</td></tr><tr><td>5.sql</td><td></td><td>1m15.256s</td><td>0m11.686s</td></tr><tr><td>6.sql</td><td></td><td>0m0.059s</td><td>0m1.156s</td></tr><tr><td>7.sql</td><td></td><td>1m44.087s</td><td>0m39.855s</td></tr><tr><td>8.sql</td><td></td><td>1m50.143s</td><td>3m37.400s</td></tr><tr><td>9.sql</td><td></td><td>6m31.232s</td><td>24m26.138s</td></tr><tr><td>10.sql</td><td></td><td>1m57.491s</td><td>0m6.302s</td></tr><tr><td>11.sql</td><td></td><td>0m0.065s</td><td>0m8.977s</td></tr><tr><td>12.sql</td><td></td><td>0m58.876s</td><td>0m2.719s</td></tr><tr><td>13.sql</td><td></td><td>0m41.079s</td><td>0m7.431s</td></tr><tr><td>14.sql</td><td></td><td>0m0.050s</td><td>0m1.613s</td></tr><tr><td>15.sql</td><td></td><td>0m45.950s</td><td>0m2.278s</td></tr><tr><td>16.sql</td><td></td><td>0m30.624s</td><td>0m1.245s</td></tr><tr><td>17.sql</td><td></td><td>0m0.060s</td><td>0m5.937s</td></tr><tr><td>18.sql</td><td></td><td>0m46.592s</td><td>0m15.944s</td></tr><tr><td>19.sql</td><td></td><td>1m4.889s</td><td>超過 30 m</td></tr><tr><td>20.sql</td><td></td><td>4m0.176s</td><td>0m4.841s</td></tr><tr><td>21.sql</td><td></td><td>8m58.563s</td><td>1m18.094s</td></tr><tr><td>22.sql</td><td></td><td>0m0.061s</td><td>0m1.139s</td></tr></tbody></table></div><p><img src=/p/clickhouse-tpch-test/10GTest.png width=931 height=457 srcset="/p/clickhouse-tpch-test/10GTest_hu_6346a5e1de4c3e09.png 480w, /p/clickhouse-tpch-test/10GTest_hu_a899af46a9b8db0a.png 1024w" loading=lazy alt=10G資料測試.png class=gallery-image data-flex-grow=203 data-flex-basis=488px></p><h2 id=query-內容>Query 內容</h2><h3 id=q1單張大表-group-by>Q1：單張大表 GROUP BY</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>select</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>l_returnflag</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>l_linestatus</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>sum</span><span class=p>(</span><span class=n>l_quantity</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>sum_qty</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>sum</span><span class=p>(</span><span class=n>l_extendedprice</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>sum_base_price</span><span class=p>,</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>sum</span><span class=p>(</span><span class=n>l_extendedprice</span><span class=o>*</span><span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>l_discount</span><span class=p>))</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>sum_disc_price</span><span class=p>,</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>sum</span><span class=p>(</span><span class=n>l_extendedprice</span><span class=o>*</span><span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>l_discount</span><span class=p>)</span><span class=o>*</span><span class=p>(</span><span class=mi>1</span><span class=o>+</span><span class=n>l_tax</span><span class=p>))</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>sum_charge</span><span class=p>,</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>avg</span><span class=p>(</span><span class=n>l_quantity</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>avg_qty</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>avg</span><span class=p>(</span><span class=n>l_extendedprice</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>avg_price</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>avg</span><span class=p>(</span><span class=n>l_discount</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>avg_disc</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>count</span><span class=p>(</span><span class=o>*</span><span class=p>)</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=n>count_order</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>from</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>lineitem</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>where</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_shipdate</span><span class=w> </span><span class=o>&lt;=</span><span class=w> </span><span class=nb>date</span><span class=w> </span><span class=s1>&#39;1998-12-01&#39;</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>interval</span><span class=w> </span><span class=s1>&#39;[DELTA]&#39;</span><span class=w> </span><span class=k>day</span><span class=w> </span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=w>  </span><span class=o>//</span><span class=n>DELTA是60</span><span class=o>~</span><span class=mi>120</span><span class=err>内的值</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>group</span><span class=w> </span><span class=k>by</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_returnflag</span><span class=p>,</span><span class=w> </span><span class=n>l_linestatus</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>l_returnflag</span><span class=p>,</span><span class=w> </span><span class=n>l_linestatus</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=q2五張表-join>Q2：五張表 JOIN</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>select</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>s_acctbal</span><span class=p>,</span><span class=w> </span><span class=n>s_name</span><span class=p>,</span><span class=w> </span><span class=n>n_name</span><span class=p>,</span><span class=w> </span><span class=n>p_partkey</span><span class=p>,</span><span class=w> </span><span class=n>p_mfgr</span><span class=p>,</span><span class=w> </span><span class=n>s_address</span><span class=p>,</span><span class=w> </span><span class=n>s_phone</span><span class=p>,</span><span class=w> </span><span class=n>s_comment</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=cm>/*查询供应者的帐户余额、名字、国家、零件的号码、生产者、供应者的地址、电话号码、备注信息 */</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>from</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>part</span><span class=p>,</span><span class=w> </span><span class=n>supplier</span><span class=p>,</span><span class=w> </span><span class=n>partsupp</span><span class=p>,</span><span class=w> </span><span class=n>nation</span><span class=p>,</span><span class=w> </span><span class=n>region</span><span class=w> </span><span class=o>//</span><span class=err>五表连接</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>where</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>p_partkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ps_partkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>s_suppkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ps_suppkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>p_size</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=k>SIZE</span><span class=p>]</span><span class=w> </span><span class=o>//</span><span class=err>指定大小，在区间</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>50</span><span class=p>]</span><span class=err>内随机选择</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>p_type</span><span class=w> </span><span class=k>like</span><span class=w> </span><span class=s1>&#39;%[TYPE]&#39;</span><span class=w> </span><span class=o>//</span><span class=err>指定类型，在</span><span class=n>TPC</span><span class=o>-</span><span class=n>H标准指定的范围内随机选择</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>s_nationkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>n_nationkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>n_regionkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>r_regionkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>r_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;[REGION]&#39;</span><span class=w> </span><span class=o>//</span><span class=err>指定地区，在</span><span class=n>TPC</span><span class=o>-</span><span class=n>H标准指定的范围内随机选择</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>and</span><span class=w> </span><span class=n>ps_supplycost</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>(</span><span class=w> </span><span class=o>//</span><span class=err>子查询</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>select</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>min</span><span class=p>(</span><span class=n>ps_supplycost</span><span class=p>)</span><span class=w> </span><span class=o>//</span><span class=err>聚集函数</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>from</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>partsupp</span><span class=p>,</span><span class=w> </span><span class=n>supplier</span><span class=p>,</span><span class=w> </span><span class=n>nation</span><span class=p>,</span><span class=w> </span><span class=n>region</span><span class=w> </span><span class=o>//</span><span class=err>与父查询的表有重叠</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>where</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>p_partkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ps_partkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>and</span><span class=w> </span><span class=n>s_suppkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ps_suppkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>and</span><span class=w> </span><span class=n>s_nationkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>n_nationkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>and</span><span class=w> </span><span class=n>n_regionkey</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>r_regionkey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>and</span><span class=w> </span><span class=n>r_name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;[REGION]&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>order</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=o>//</span><span class=err>排序</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=總結>總結</h2><p>可以看出來 ClickHouse 擅長的是單張大表聚合查詢，不擅長於多表 JOIN 查詢。</p></section><footer class=article-footer><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/clickhouse-materialized-mysql/><div class=article-details><h2 class=article-title>ClickHouse Materialized MySQL</h2></div></a></article><article><a href=/p/clickhouse-partition/><div class=article-details><h2 class=article-title>ClickHouse Partition</h2></div></a></article><article><a href=/p/clickhouse-storage-file/><div class=article-details><h2 class=article-title>ClickHouse 儲存結構</h2></div></a></article><article><a href=/p/clickhouse-index/><div class=article-details><h2 class=article-title>ClickHouse 索引</h2></div></a></article><article><a href=/p/clickhouse-mergetree/><div class=article-details><h2 class=article-title>ClickHouse MergeTree 引擎</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

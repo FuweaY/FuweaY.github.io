@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>功能 on FuweaY</title><link>https://FuweaY.github.io/tags/%E5%8A%9F%E8%83%BD/</link><description>Recent content in 功能 on FuweaY</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 12 Jul 2021 12:00:00 +0800</lastBuildDate><atom:link href="https://FuweaY.github.io/tags/%E5%8A%9F%E8%83%BD/index.xml" rel="self" type="application/rss+xml"/><item><title>MySQL8.0 新增的帳號管理功能</title><link>https://FuweaY.github.io/p/mysql-account-manage-new-feature/</link><pubDate>Mon, 12 Jul 2021 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mysql-account-manage-new-feature/</guid><description>&lt;h2 id="password-verification-required-policy">Password Verification-Required Policy
+&lt;/h2>&lt;p>MySQL 8.0.13 開始，可以設定在修改密碼時需要一併提供舊密碼。&lt;/p>
+&lt;p>可透過以下 2 種方式設定 -&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>全域系統變數 &lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_password_require_current" target="_blank" rel="noopener"
+>password_require_current&lt;/a> 預設值為 OFF ，可以透過調整為 ON 要求修改密碼時提供就密碼。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>CREATE 或 ALTER USER 時加上 PASSWORD REQUIRE CURRENT [DEFAULT | OPTIONAL] 設定。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">-- admin 建立帳號
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">REQUIRE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- user 修改密碼
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3892&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">HY000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Current&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">needs&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">to&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">be&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">specified&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">the&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REPLACE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">clause&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">order&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">to&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">change&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">it&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REPLACE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;456&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">01&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>PASSWORD REQUIRE CURRENT：密碼更改必須指定當前密碼。&lt;/p>
+&lt;p>PASSWORD REQUIRE CURRENT OPTIONAL：密碼更改不強迫指定當前密碼。&lt;/p>
+&lt;p>PASSWORD REQUIRE CURRENT DEFAUT：依照全域系統變數 &lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_password_require_current" target="_blank" rel="noopener"
+>password_require_current&lt;/a> 設定。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;blockquote>
+&lt;p>💡 NOTE：當 USER 具有 global create user 權限或者是在 mysql database 具有 update 權限時，則不受任何限制，意即不需要提供舊密碼。&lt;/p>&lt;/blockquote>
+&lt;p>參考&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html#password-reverification-policy" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/password-management.html#password-reverification-policy&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_password_require_current" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_password_require_current&lt;/a>&lt;/p>
+&lt;h2 id="雙密碼功能-dual-passwords">雙密碼功能 (Dual Passwords)
+&lt;/h2>&lt;p>MySQL 8.0.14 開始在帳戶管理新增了 2 個子句，用來提供雙密碼的功能，這樣就可以分階段且不需各單位配合也不需要停機的況下更換密碼。&lt;/p>
+&lt;h3 id="retain-current-password">RETAIN CURRENT PASSWORD
+&lt;/h3>&lt;ul>
+&lt;li>
+&lt;p>將 user 當前(舊)密碼替換為第二(secondary)密碼，新的密碼則會成為主(primary)密碼。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">01&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;456&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RETAIN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">04&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 secondary(舊) 密碼登入成功
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p123&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Your&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">connection&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">id&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">82583&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">21&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Community&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GPL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 primary(新) 密碼登入成功
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p456&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Your&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">connection&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">id&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">82584&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">21&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Community&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GPL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>新舊密碼為空時，無法指定 RETAIN CURRENT PASSWORD。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">01&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">identified&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">by&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RETAIN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3878&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">HY000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Empty&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">can&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">not&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">be&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">retained&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">as&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">second&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">identified&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">by&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">02&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">identified&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">by&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RETAIN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3895&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">HY000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Current&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">can&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">not&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">be&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">retained&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">because&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">new&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">empty&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>當 user 已有第二(secondary)密碼時，在未指定 RETAIN CURRENT PASSWORD 的情況下更改主(primary)密碼，第二(secondary)密碼會維持不變。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;456&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RETAIN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 此時 123 為 secondary password， 456 為 parmary password
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;789&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 此時 123 為 secondary password， 789 為 parmary password
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 123 登入成功
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p123&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Your&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">connection&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">id&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">82583&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">21&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Community&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GPL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 456 登入失敗
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p456&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1045&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">28000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">using&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">YES&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 789 登入成功
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p789&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Your&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">connection&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">id&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">82583&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">8&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">21&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">MySQL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Community&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GPL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;abc&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RETAIN&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CURRENT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 此時 789 為 secondary password， abc 為 parmary password
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>當更改身分驗證插件時，無法指定 RETAIN CURRENT PASSWORD，並且會將第二(secondary)密碼丟棄。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="discard-old-password">DISCARD OLD PASSWORD
+&lt;/h3>&lt;p>刪除第二(secondary)密碼。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">DISCARD&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">OLD&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- 使用 secondary password 登入
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p123&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1045&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">28000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">using&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">YES&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>參考&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/alter-user.html" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/alter-user.html&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html#dual-passwords" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/password-management.html#dual-passwords&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.percona.com/blog/using-mysql-8-dual-passwords/" target="_blank" rel="noopener"
+>https://www.percona.com/blog/using-mysql-8-dual-passwords/&lt;/a>&lt;/p>
+&lt;h2 id="生成隨機密碼random-password-generation">生成隨機密碼(Random Password Generation)
+&lt;/h2>&lt;p>MySQL 8.0.18 開始在設定密碼的時候可以使用 RANDOM PASSWORD 來為 USER 生成隨機密碼。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RANDOM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">host&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">generated&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Oa&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">J&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="n">nSI40_&lt;/span>&lt;span class="o">!&lt;/span>&lt;span class="n">TqIaYIt&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">RANDOM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">host&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">generated&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">XgtPCz&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="n">Sx&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="n">Yf8Sxhpg&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="n">D&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">------+-----------+----------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">02&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>生成的密碼長度由系統變數 &lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_generated_random_password_length" target="_blank" rel="noopener"
+>generated_random_password_length&lt;/a> 決定，預設值為 20。&lt;/p>
+&lt;p>參考&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html#random-password-generation" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/password-management.html#random-password-generation&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_generated_random_password_length" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_generated_random_password_length&lt;/a>&lt;/p>
+&lt;h2 id="登入失敗追蹤和帳號暫時鎖定failed-login-tracking-and-temporary-account-locking">登入失敗追蹤和帳號暫時鎖定(Failed-Login Tracking and Temporary Account Locking)
+&lt;/h2>&lt;p>MySQL 8.0.19 開始，可以設定當該帳號連續輸入錯誤的密碼時，暫時將帳號鎖定。&lt;/p>
+&lt;ul>
+&lt;li>FAILED_LOGIN_ATTEMPTS N：表示當連續輸入 N 次錯誤密碼時，將會觸發鎖定。&lt;/li>
+&lt;li>PASSWORD_LOCK_TIME {N | UNBOUNDED}：表示要鎖定 N 天，其中 UNBOUNDED 表示永久鎖定直到被解鎖。&lt;/li>
+&lt;/ul>
+&lt;p>以上 N 的允許值為 0~32767，其中 0 表示禁用，預設值皆為 0。只有當兩個 N 都不為 0 ，才能使用到此功能。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="o">#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">建立帳號，並設定當密碼連續輸入錯誤&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="err">次時，則會鎖定&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">天&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">CREATE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">IDENTIFIED&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">BY&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;123&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">FAILED_LOGIN_ATTEMPTS&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD_LOCK_TIME&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">02&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Enter&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1045&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">28000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">using&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">YES&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Enter&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1045&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">28000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">using&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">YES&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">root&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">~&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">$&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">utest&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">p&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Enter&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">password&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3955&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">HY000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Account&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">blocked&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">day&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">day&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">remaining&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">due&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">to&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">consecutive&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">failed&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">logins&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="c1">-- error log
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">2021&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">07&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">07&lt;/span>&lt;span class="n">T08&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">13&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">23&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">364124&lt;/span>&lt;span class="n">Z&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">86982&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">Note&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">MY&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">010914&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="n">Server&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">Access&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">denied&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Account&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">blocked&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">day&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">day&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">s&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">remaining&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">due&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">to&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">consecutive&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">failed&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">logins&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>以下方式可以重置計數並解鎖所有帳號：&lt;/p>
+&lt;ul>
+&lt;li>重啟 server&lt;/li>
+&lt;li>執行 FLUSH PRIVILEGES&lt;/li>
+&lt;/ul>
+&lt;p>以下狀況會重置計數或解鎖個別帳號：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>成功登入&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>持續鎖定的時間已過&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>使用 ALTER USER 變更鎖定設定，或者是使用 ACCOUNT UNLOCK 語句。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="o">#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">變更鎖定設定也會重置&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">FAILED_LOGIN_ATTEMPTS&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">PASSWORD_LOCK_TIME&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">02&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">#&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">使用&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">...&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">ACCOUNT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">UNLOCK&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">解鎖&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ALTER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USER&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">ACCOUNT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">UNLOCK&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;p>參考&lt;/p>
+&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html#failed-login-tracking" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/password-management.html#failed-login-tracking&lt;/a>&lt;/p></description></item><item><title>MySQL8.0.16 新增 partial revokes 功能</title><link>https://FuweaY.github.io/p/mysql-partial-revokes/</link><pubDate>Fri, 12 Mar 2021 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mysql-partial-revokes/</guid><description>&lt;p>在 MySQL 8.0.16 之前，如果我們要給予 USER 除了某個 DATABASE 以外都有權限，只能夠每個 DATABASE 都 GRANT 一次權限，這方面有時候並不是很方便。例如：總共有 100 個 DATABASE 其中只有 1 個不給予 USER 權限，我們就需要執行 99 個 GRANT 語法。&lt;/p>
+&lt;p>從 MySQL 8.0.16 開始，推出了可以回收部分權限 (Partial Revokes) 的功能，將粗粒度的 GRANT 權限用 REVOKE 收回一部分細粒度權限，大大增加了這方面需求的方便性。&lt;/p>
+&lt;h2 id="展示">展示
+&lt;/h2>&lt;p>目標是給予 USER 除了 mysql.* 以外的所有權限，請查看以下範例：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>當 MySQL 版本低於 8.0.16 或者關閉 partial revokes 功能，我們只能逐一給予其他 DB 權限：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">-- BEFORE MySQL 8.0.16，或關閉 partial revokes 功能
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SHOW&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GLOBAL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">VARIABLES&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">LIKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;partial_revokes&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Variable_name&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">partial_revokes&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">OFF&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SHOW&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GRANTS&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FOR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Grants&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REVOKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">ERROR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">1141&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">42000&lt;/span>&lt;span class="p">):&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">There&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">is&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">no&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">such&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">grant&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">defined&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">user&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">on&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">host&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;localhost&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REVOKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">performance_schema&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sys&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">01&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SHOW&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GRANTS&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FOR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">--------------------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Grants&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">--------------------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">USAGE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">sys&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">performance_schema&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">--------------------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>當 MySQL 版本不小於 8.0.16 且開啟 partial revokes 功能，就能很方便的完成需求：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">-- AFTER MySQL 8.0.16，並開啟 partial revokes 功能
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SET&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GLOBAL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">partial_revokes&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SHOW&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GLOBAL&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">VARIABLES&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">LIKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;partial_revokes&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Variable_name&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Value&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">partial_revokes&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">-----------------+-------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">row&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REVOKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Query&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">OK&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">affected&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SHOW&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">GRANTS&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FOR&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">----------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Grants&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">for&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">@&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">----------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">GRANT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">TO&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">REVOKE&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">ON&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">mysql&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">`@`&lt;/span>&lt;span class="n">localhost&lt;/span>&lt;span class="o">`&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">|&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">+&lt;/span>&lt;span class="c1">----------------------------------------------------+
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">rows&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">in&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">set&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="mi">00&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">sec&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;h2 id="參考">參考
+&lt;/h2>&lt;p>&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/grant.html" target="_blank" rel="noopener"
+>MySQL 文檔 - GRANT Statement&lt;/a>&lt;/p></description></item><item><title>MySQL8.0.23 user 支持 netmask 遮罩</title><link>https://FuweaY.github.io/p/mysql-user-netmask/</link><pubDate>Fri, 26 Feb 2021 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mysql-user-netmask/</guid><description>&lt;p>MySQL 從 8.0.23 開始支持在創建 user 時使用 netmask 遮罩來限制用戶的訪問範圍。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mysql&amp;gt; SELECT @@version&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+-----------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> @@version &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+-----------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> 8.0.23 &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+-----------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="m">1&lt;/span> row in &lt;span class="nb">set&lt;/span> &lt;span class="o">(&lt;/span>0.00 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; create user test@&lt;span class="s1">&amp;#39;172.17.0.0/24&amp;#39;&lt;/span> identified by &lt;span class="s1">&amp;#39;test&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Query OK, &lt;span class="m">0&lt;/span> rows affected &lt;span class="o">(&lt;/span>0.01 sec&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mysql&amp;gt; &lt;span class="k">select&lt;/span> user,host from mysql.user&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+------------------+---------------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> user &lt;span class="p">|&lt;/span> host &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+------------------+---------------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">|&lt;/span> &lt;span class="nb">test&lt;/span> &lt;span class="p">|&lt;/span> 172.17.0.0/24 &lt;span class="p">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">+------------------+---------------+
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">HOST 172.17.0.1 &amp;gt; mysql -utest -p --host 172.17.0.5
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Enter password:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Welcome to the MySQL monitor. Commands end with &lt;span class="p">;&lt;/span> or &lt;span class="se">\g&lt;/span>.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Your MySQL connection id is &lt;span class="m">20&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Server version: 8.0.23 MySQL Community Server - GPL
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>參考
+&lt;a class="link" href="https://dev.mysql.com/doc/refman/8.0/en/account-names.html" target="_blank" rel="noopener"
+>https://dev.mysql.com/doc/refman/8.0/en/account-names.html&lt;/a>&lt;/p></description></item></channel></rss>

@@ -1,0 +1,240 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="介紹 ClickHouse Partition"><title>ClickHouse Partition</title>
+<link rel=canonical href=https://FuweaY.github.io/p/clickhouse-partition/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="ClickHouse Partition"><meta property='og:description' content="介紹 ClickHouse Partition"><meta property='og:url' content='https://FuweaY.github.io/p/clickhouse-partition/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2024-10-15T12:00:00+08:00'><meta property='article:modified_time' content='2024-10-15T12:00:00+08:00'><meta name=twitter:title content="ClickHouse Partition"><meta name=twitter:description content="介紹 ClickHouse Partition"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#簡介>簡介</a></li><li><a href=#範例>範例</a></li><li><a href=#分區目錄的命名規則>分區目錄的命名規則</a></li><li><a href=#分區目錄的合併過程>分區目錄的合併過程</a></li><li><a href=#參考>參考</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/clickhouse/>ClickHouse</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/clickhouse-partition/>ClickHouse Partition</a></h2><h3 class=article-subtitle>介紹 ClickHouse Partition</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Oct 15, 2024</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 4 分鐘</time></div></footer></div></header><section class=article-content><h2 id=簡介>簡介</h2><p>在 MergeTree 中會依照表上的 partition by 指定的分區鍵將 INSERT 的資料塞入到對應的分區中，不同分區的資料會分散在不同的實體目錄，在訪問數據時可以幫助 ClickHouse 盡可能少的掃描數據。</p><p>大多數的情況下不需要分區鍵，即使需要通常也不需要比月份更精細的分區鍵，過於精細的分區反而會降低效率，例如：不建議將 id 設為分區鍵，而是應該透過 order by 設為稀疏索引。</p><h2 id=範例>範例</h2><p>建立一張包含分區設定的表：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>test_db</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>test_table</span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>id</span><span class=w> </span><span class=nb>BIGINT</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nb>date</span><span class=w> </span><span class=n>Datetime</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>MergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>toYYYYMM</span><span class=p>(</span><span class=nb>date</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>(</span><span class=n>id</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>SETTINGS</span><span class=w> </span><span class=n>index_granularity</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>8192</span><span class=p>,</span><span class=w> </span><span class=n>index_granularity_bytes</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>查看</span><span class=w> </span><span class=n>test_table</span><span class=w> </span><span class=err>的分區目錄</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>partition</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>active</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=k>system</span><span class=p>.</span><span class=n>parts</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;test_table&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>0</span><span class=w> </span><span class=k>rows</span><span class=w> </span><span class=k>in</span><span class=w> </span><span class=k>set</span><span class=p>.</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>因為表才建立還沒有塞入數據，因此看不到任何分區目錄：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>6</span> 5月  <span class=m>13</span> 10:53 detached
+</span></span><span class=line><span class=cl>-rw-r----- <span class=m>1</span> clickhouse clickhouse <span class=m>1</span> 5月  <span class=m>13</span> 10:53 format_version.txt
+</span></span></code></pre></td></tr></table></div></div><p>向表中插入新數據時，同一批次的新數據會被儲存在單獨的分區目錄：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>test_table</span><span class=w> </span><span class=k>VALUES</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;test1&#39;</span><span class=p>,</span><span class=s1>&#39;2022-09-01 00:00:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>2</span><span class=p>,</span><span class=s1>&#39;test2&#39;</span><span class=p>,</span><span class=s1>&#39;2022-10-01 00:00:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>3</span><span class=p>,</span><span class=s1>&#39;test3&#39;</span><span class=p>,</span><span class=s1>&#39;2022-09-01 00:00:00&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>查看</span><span class=w> </span><span class=n>test_table</span><span class=w> </span><span class=err>的分區目錄</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>partition</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>active</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=k>system</span><span class=p>.</span><span class=n>parts</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;test_table&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=n>partition</span><span class=err>─┬─</span><span class=n>name</span><span class=err>─────────┬─</span><span class=n>active</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=n>_1_1_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202210</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202210</span><span class=n>_2_2_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└───────────┴──────────────┴────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>test_table</span><span class=w> </span><span class=k>VALUES</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>4</span><span class=p>,</span><span class=s1>&#39;test4&#39;</span><span class=p>,</span><span class=s1>&#39;2022-08-01 00:00:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>5</span><span class=p>,</span><span class=s1>&#39;test5&#39;</span><span class=p>,</span><span class=s1>&#39;2022-09-01 00:00:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>6</span><span class=p>,</span><span class=s1>&#39;test6&#39;</span><span class=p>,</span><span class=s1>&#39;2022-11-01 00:00:00&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>查看</span><span class=w> </span><span class=n>test_table</span><span class=w> </span><span class=err>的分區目錄</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=n>partition</span><span class=err>─┬─</span><span class=n>name</span><span class=err>─────────┬─</span><span class=n>active</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202208</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202208</span><span class=n>_3_3_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=n>_1_1_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202209</span><span class=n>_4_4_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202210</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202210</span><span class=n>_2_2_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>202211</span><span class=w>    </span><span class=err>│</span><span class=w> </span><span class=mi>202211</span><span class=n>_5_5_0</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└───────────┴──────────────┴────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 1、3 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_1_1_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 2 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202210_2_2_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 4 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202208_3_3_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 5 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_4_4_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 6 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202211_5_5_0
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse    <span class=m>6</span>  5月 <span class=m>13</span> 10:53 detached
+</span></span><span class=line><span class=cl>-rw-r----- <span class=m>1</span> clickhouse clickhouse    <span class=m>1</span>  5月 <span class=m>13</span> 10:53 format_version.txt
+</span></span></code></pre></td></tr></table></div></div><p>隨後經過約 10~15 分鐘後 (或者是使用 <code>OPTIMIZE TABLE</code>) 同一分區的資料會合併到一個新的分區目錄，並且舊的分區目錄其 active 會被設為 0 不再使用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 1、3 的資料，此目錄 active = 0</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_1_1_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 2 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202210_2_2_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 4 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202208_3_3_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 5 的資料，此目錄 active = 0</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_4_4_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 6 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202211_5_5_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 1、3、5 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_1_4_1
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse    <span class=m>6</span>  5月 <span class=m>13</span> 10:53 detached
+</span></span><span class=line><span class=cl>-rw-r----- <span class=m>1</span> clickhouse clickhouse    <span class=m>1</span>  5月 <span class=m>13</span> 10:53 format_version.txt
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>┌─partition─┬─name─────────┬─active─┐
+</span></span><span class=line><span class=cl>│ <span class=m>202208</span>    │ 202208_3_3_0 │      <span class=m>1</span> │
+</span></span><span class=line><span class=cl>│ <span class=m>202209</span>    │ 202209_1_1_0 │      <span class=m>0</span> │
+</span></span><span class=line><span class=cl>│ <span class=m>202209</span>    │ 202209_1_4_1 │      <span class=m>1</span> │
+</span></span><span class=line><span class=cl>│ <span class=m>202209</span>    │ 202209_4_4_0 │      <span class=m>0</span> │
+</span></span><span class=line><span class=cl>│ <span class=m>202210</span>    │ 202210_2_2_0 │      <span class=m>1</span> │
+</span></span><span class=line><span class=cl>│ <span class=m>202211</span>    │ 202211_5_5_0 │      <span class=m>1</span> │
+</span></span><span class=line><span class=cl>└───────────┴──────────────┴────────┘
+</span></span></code></pre></td></tr></table></div></div><p>隨後經過約 10 分鐘後，active = 0 的分區目錄會被刪除：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 1、3、5 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202209_1_4_1
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 2 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202210_2_2_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 4 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202208_3_3_0
+</span></span><span class=line><span class=cl><span class=c1># 包含 id = 6 的資料，此目錄 active = 1</span>
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse <span class=m>4096</span>  9月 <span class=m>20</span> 14:47 202211_5_5_0
+</span></span><span class=line><span class=cl>drwxr-x--- <span class=m>2</span> clickhouse clickhouse    <span class=m>6</span>  5月 <span class=m>13</span> 10:53 detached
+</span></span><span class=line><span class=cl>-rw-r----- <span class=m>1</span> clickhouse clickhouse    <span class=m>1</span>  5月 <span class=m>13</span> 10:53 format_version.txt
+</span></span></code></pre></td></tr></table></div></div><h2 id=分區目錄的命名規則>分區目錄的命名規則</h2><p><img src=/p/clickhouse-partition/Untitled.png width=572 height=123 srcset="/p/clickhouse-partition/Untitled_hu_eddaef78faa60362.png 480w, /p/clickhouse-partition/Untitled_hu_716f2228c93b0f71.png 1024w" loading=lazy class=gallery-image data-flex-grow=465 data-flex-basis=1116px></p><ul><li><p>PartitionID：分區ID，為依照分區鍵計算的結果。</p></li><li><p>MinBlockNum、MaxBlockNum：</p><p>BlockNum 是一個以表為單位的自增值，每當新建一個分區目錄時 BlockNum 就會增長。</p><p>因此 Min、Max 的 BlockNum 就表示該分區目錄所包含的最小和最大 BlockNum。</p><p>對於一個新建的分區目錄 Min、Max BlockNum 會是相等的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl>20220920_1_1_0
+</span></span><span class=line><span class=cl>20220921_2_2_0
+</span></span><span class=line><span class=cl>20220920_3_3_0
+</span></span></code></pre></td></tr></table></div></div><p>分區合併時才會發生分區目錄的 Min、Max BlockNum 不相同：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>➜  ~ ll /var/lib/clickhouse/data/test_db/test_table
+</span></span><span class=line><span class=cl>20220920_1_3_1
+</span></span><span class=line><span class=cl>20220921_2_2_0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 原本的分區目錄 20220920_1_1_0、20220920_3_3_0 因為 PartitionID 相同，因此可以進行合併，合併之後 20220920 的 MinBlockNum = 1, MaxBlockNum = 3</span>
+</span></span></code></pre></td></tr></table></div></div></li><li><p>Level：分區合併的次數，對於每一個 PartitionID 所屬的分區目錄其起始值為 0。</p></li></ul><h2 id=分區目錄的合併過程>分區目錄的合併過程</h2><p><img src=/p/clickhouse-partition/Untitled1.png width=1509 height=661 srcset="/p/clickhouse-partition/Untitled1_hu_2ea688e7ecb036d2.png 480w, /p/clickhouse-partition/Untitled1_hu_2045e0f1348b3ff8.png 1024w" loading=lazy class=gallery-image data-flex-grow=228 data-flex-basis=547px></p><p><img src=/p/clickhouse-partition/Untitled2.png width=1270 height=546 srcset="/p/clickhouse-partition/Untitled2_hu_675932c70b2798e4.png 480w, /p/clickhouse-partition/Untitled2_hu_6912c8321224cf97.png 1024w" loading=lazy class=gallery-image data-flex-grow=232 data-flex-basis=558px></p><h2 id=參考>參考</h2><p><a class=link href=https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/custom-partitioning-key/ target=_blank rel=noopener>Custom Partitioning Key | ClickHouse Docs</a></p><p><a class=link href=https://www.hnbian.cn/posts/78f0aac1.html#toc-heading-23 target=_blank rel=noopener>ClickHouse表引擎 1.MergeTree 建表方式与分区规则 | hnbian</a></p><p><a class=link href=https://github.com/ClickHouse/clickhouse-presentations/blob/master/meetup32/%E6%9C%B1%E5%87%AF.ppt target=_blank rel=noopener>https://github.com/ClickHouse/clickhouse-presentations/blob/master/meetup32/朱凯.ppt</a></p></section><footer class=article-footer><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/clickhouse-materialized-mysql/><div class=article-details><h2 class=article-title>ClickHouse Materialized MySQL</h2></div></a></article><article><a href=/p/clickhouse-tpch-test/><div class=article-details><h2 class=article-title>ClickHouse TPC-H Test</h2></div></a></article><article><a href=/p/clickhouse-storage-file/><div class=article-details><h2 class=article-title>ClickHouse 儲存結構</h2></div></a></article><article><a href=/p/clickhouse-index/><div class=article-details><h2 class=article-title>ClickHouse 索引</h2></div></a></article><article><a href=/p/clickhouse-mergetree/><div class=article-details><h2 class=article-title>ClickHouse MergeTree 引擎</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

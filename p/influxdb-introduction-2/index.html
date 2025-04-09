@@ -1,0 +1,296 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="介紹 InfluxDB 核心術語"><title>InfluxDB 簡介 - 2</title>
+<link rel=canonical href=https://FuweaY.github.io/p/influxdb-introduction-2/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="InfluxDB 簡介 - 2"><meta property='og:description' content="介紹 InfluxDB 核心術語"><meta property='og:url' content='https://FuweaY.github.io/p/influxdb-introduction-2/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2021-01-10T12:00:00+08:00'><meta property='article:modified_time' content='2021-01-10T12:00:00+08:00'><meta name=twitter:title content="InfluxDB 簡介 - 2"><meta name=twitter:description content="介紹 InfluxDB 核心術語"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#database>Database</a></li><li><a href=#retention-policy>Retention Policy</a></li><li><a href=#shard>Shard</a></li><li><a href=#shard-groups>Shard groups</a></li><li><a href=#shard-group-duration>Shard (group) duration</a></li><li><a href=#measurement>Measurement</a></li><li><a href=#timestamp>Timestamp</a></li><li><a href=#field-set>Field (set)</a></li><li><a href=#tag-set>Tag (set)</a></li><li><a href=#series>Series</a></li><li><a href=#point>Point</a></li><li><a href=#參考>參考</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/influxdb/>InfluxDB</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/influxdb-introduction-2/>InfluxDB 簡介 - 2</a></h2><h3 class=article-subtitle>介紹 InfluxDB 核心術語</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Jan 10, 2021</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 4 分鐘</time></div></footer></div></header><section class=article-content><h1 id=influxdb-核心術語>InfluxDB 核心術語</h1><h2 id=database>Database</h2><p>對應 SQL 中的 database。不同的 database 資料存放在不同目錄。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- influxDB
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>&gt;</span><span class=w> </span><span class=k>create</span><span class=w> </span><span class=k>database</span><span class=w> </span><span class=n>test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>databases</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>databases</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>_internal</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=n>use</span><span class=w> </span><span class=n>test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>Using</span><span class=w> </span><span class=k>database</span><span class=w> </span><span class=n>test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- linux
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>root</span><span class=o>@</span><span class=n>e6c0eae8a31f</span><span class=p>:</span><span class=o>/</span><span class=n>var</span><span class=o>/</span><span class=n>lib</span><span class=o>/</span><span class=n>influxdb</span><span class=o>/</span><span class=k>data</span><span class=o>#</span><span class=w> </span><span class=n>ls</span><span class=w> </span><span class=o>-</span><span class=n>l</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>total</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>drwx</span><span class=c1>------ 4 root root 36 Nov  3 02:49 _internal
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>drwx</span><span class=c1>------ 4 root root 36 Nov 13 10:05 test
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=retention-policy>Retention Policy</h2><p>用來設定數據保留策略，過期的數據會被刪除。包含以下三個元素－</p><ul><li>duration：用來描述 influxDB 會保存數據多久。</li><li>replication factor：數據存在 <code>cluster</code> 裡面的副本數量，開源版本只會是 1。</li><li>shard (group) duration：表示一個 <code>shard (group)</code> 跨越了多少的時間。</li></ul><p>範例：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- autogen 為默認的保留策略，數據保留時間為永久
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>retention</span><span class=w> </span><span class=n>policies</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=w>    </span><span class=n>duration</span><span class=w> </span><span class=n>shardGroupDuration</span><span class=w> </span><span class=n>replicaN</span><span class=w> </span><span class=k>default</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----    -------- ------------------ -------- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>autogen</span><span class=w> </span><span class=mi>0</span><span class=n>s</span><span class=w>       </span><span class=mi>168</span><span class=n>h0m0s</span><span class=w>           </span><span class=mi>1</span><span class=w>        </span><span class=k>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>shards</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>id</span><span class=w> </span><span class=k>database</span><span class=w> </span><span class=n>retention_policy</span><span class=w> </span><span class=n>shard_group</span><span class=w> </span><span class=n>start_time</span><span class=w>           </span><span class=n>end_time</span><span class=w>             </span><span class=n>expiry_time</span><span class=w>          </span><span class=n>owners</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- -------- --------------- ----------- ----------           --------             -----------          ------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>12</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>12</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>09</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>16</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>16</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>24</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>24</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>32</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>32</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>12</span><span class=o>-</span><span class=mi>07</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>12</span><span class=o>-</span><span class=mi>07</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=shard>Shard</h2><p><img src=/p/influxdb-introduction-2/Untitled.png width=550 height=429 srcset="/p/influxdb-introduction-2/Untitled_hu_1ca3d335194f964e.png 480w, /p/influxdb-introduction-2/Untitled_hu_d8e589f20557ea15.png 1024w" loading=lazy class=gallery-image data-flex-grow=128 data-flex-basis=307px></p><p>類似於 MySQL 的 <code>partition</code> 在同一個實例上將一張 <code>table</code> 切為多個實體檔案。</p><p>包含實際的數據，在 disk 上儲存為 <code>TSM</code> 文件，每一個 <code>shard</code> 都包含了一個彼此不重複的時間段。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>shards</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>id</span><span class=w> </span><span class=k>database</span><span class=w> </span><span class=n>retention_policy</span><span class=w> </span><span class=n>shard_group</span><span class=w> </span><span class=n>start_time</span><span class=w>           </span><span class=n>end_time</span><span class=w>             </span><span class=n>expiry_time</span><span class=w>          </span><span class=n>owners</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- -------- --------------- ----------- ----------           --------             -----------          ------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>12</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>12</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>09</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>16</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>16</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>16</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>24</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>24</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>23</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>32</span><span class=w> </span><span class=n>test</span><span class=w>     </span><span class=n>autogen</span><span class=w>          </span><span class=mi>32</span><span class=w>          </span><span class=mi>2020</span><span class=o>-</span><span class=mi>11</span><span class=o>-</span><span class=mi>30</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>12</span><span class=o>-</span><span class=mi>07</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>12</span><span class=o>-</span><span class=mi>07</span><span class=n>T00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=n>Z</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>root@e6c0eae8a31f:/var/lib/influxdb# tree ./data/test/autogen
+</span></span><span class=line><span class=cl><span class=nb>test</span>
+</span></span><span class=line><span class=cl><span class=p>|</span>-- autogen
+</span></span><span class=line><span class=cl>    <span class=p>|</span>-- <span class=m>12</span>
+</span></span><span class=line><span class=cl>    <span class=sb>`</span>-- <span class=m>16</span>
+</span></span><span class=line><span class=cl>        <span class=p>|</span>-- 000000003-000000002.tsm
+</span></span><span class=line><span class=cl>        <span class=sb>`</span>-- fields.idx
+</span></span></code></pre></td></tr></table></div></div><h2 id=shard-groups>Shard groups</h2><p>類似於 <code>Mongo</code> 的 <code>sharding</code>，將同個 table 的資料分散到不同的實例上。</p><p><code>shard</code> 的 <code>logical containers</code>，每個 <code>shard</code> 都只會屬於其中一個 <code>shard group</code>，InfluxDB 將數據進行 <code>hash</code> 寫入到不同的 <code>server</code>，每個 <code>server</code> 同一個時間區間的所有<code>shard</code> 就屬於同一個 <code>shard group</code>。</p><p>此為付費版本的 cluster 功能，開源的單實例版本無此功能。</p><h2 id=shard-group-duration>Shard (group) duration</h2><p>表示一個 <code>shard (group)</code> 跨越了多少的時間，可以在 <code>retention policy</code> 中設定。</p><h2 id=measurement>Measurement</h2><p>對應 SQL 中的 table，但不需要預先建立，insert 資料時自動建立。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>measurements</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>INSERT</span><span class=w> </span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w> </span><span class=n>loading</span><span class=o>=</span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>measurements</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>measurements</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=s2>&#34;cpu&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=timestamp>Timestamp</h2><p>數據關聯的時間點，在 InfluxDB 裡的所有時間都是 UTC。</p><h2 id=field-set>Field (set)</h2><p>儲存 metadata 和 真實數據。作為查詢條件不會被索引，只能全表掃描。</p><ul><li>field key：和 MySQL 中沒有建立 index 的 column 概念相似。</li><li>field value：field key 所對應的值。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 除了 time 以外，還有 host 和 loading 2個欄位
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=s2>&#34;cpu&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w>  </span><span class=k>show</span><span class=w> </span><span class=n>field</span><span class=w> </span><span class=n>keys</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>fieldKey</span><span class=w> </span><span class=n>fieldType</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-------- ---------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>loading</span><span class=w>  </span><span class=nb>float</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- loading        是 field key 
+</span></span></span><span class=line><span class=cl><span class=c1>-- 0.65           是 field value
+</span></span></span><span class=line><span class=cl><span class=c1>-- loading = 0.65 是 field set
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=tag-set>Tag (set)</h2><p>選用，用於儲存常用的 metadata。作為查詢條件會被索引，查詢效率高。</p><ul><li>Tag key：和 MySQL 中有建立 index 的 column 概念相似。</li><li>Tag value：tag key 所對應的值。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 除了 time 以外，還有 host 和 loading 2個欄位
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=s2>&#34;cpu&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w>  </span><span class=k>show</span><span class=w> </span><span class=n>tag</span><span class=w> </span><span class=n>keys</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>tagKey</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>host</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- host        是 tag key 
+</span></span></span><span class=line><span class=cl><span class=c1>-- A           是 tag value
+</span></span></span><span class=line><span class=cl><span class=c1>-- host = A    是 tag set
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=series>Series</h2><p>擁有相同 <code>measurement</code> 和 <code>tag set</code> 的結果集。</p><ul><li>series key： 由 <code>measurement</code>、 <code>tag set</code> 和 <code>field key</code> 定義。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>comment</span><span class=w> </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ------- ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=k>new</span><span class=w>     </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>1605592932144992788</span><span class=w>         </span><span class=n>B</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>05</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>1605592932144992790</span><span class=w> </span><span class=k>next</span><span class=w>    </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>85</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>series</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>---
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>B</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>上述例子中有兩個</span><span class=w> </span><span class=n>series</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=k>new</span><span class=w>     </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>1605592932144992790</span><span class=w> </span><span class=k>next</span><span class=w>    </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>85</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>B</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=mi>1605592932144992788</span><span class=w>         </span><span class=n>B</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>05</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>上述例子中</span><span class=w> </span><span class=n>series</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=err>有以下</span><span class=mi>4</span><span class=err>組</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w> </span><span class=k>comment</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=o>=</span><span class=n>B</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>cpu</span><span class=p>,</span><span class=w> </span><span class=k>host</span><span class=o>=</span><span class=n>B</span><span class=w> </span><span class=k>comment</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=point>Point</h2><p>對應 MySQL 中一個完整的 Row，由 <code>measurement</code>、 <code>tag set</code>、 <code>field set</code> 和 <code>timestamp</code>組成。</p><p>在同一個 <code>series</code> 底下時，同一個 <code>timestamp</code> 只會有一個 <code>point</code> ，因此 <code>series</code> + <code>timestamp</code> 可以視為 MySQL 的 <code>Primary key</code>。</p><p>若在同一個 <code>series</code> + <code>timestamp</code> INSERT 資料，field 會合併，範例如下：</p><p>series 為 cpu,host=A，因此在 cpu 裡面 host = A 且 time=1605592932144992788 只會有一筆紀錄。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=s2>&#34;cpu&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>show</span><span class=w> </span><span class=n>series</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>---
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>新增 series 相同，但 field key 不同的資料，會發現資料合併。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>&gt;</span><span class=w> </span><span class=k>INSERT</span><span class=w> </span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w> </span><span class=k>comment</span><span class=o>=</span><span class=s2>&#34;old&#34;</span><span class=w>  </span><span class=mi>1605592932144992788</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>comment</span><span class=w> </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ------- ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=k>old</span><span class=w>     </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>65</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>新增 series 相同，且 field key 相同的資料，則會發現資料被覆蓋。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>INSERT</span><span class=w> </span><span class=n>cpu</span><span class=p>,</span><span class=k>host</span><span class=o>=</span><span class=n>A</span><span class=w> </span><span class=n>loading</span><span class=o>=</span><span class=mi>0</span><span class=p>.</span><span class=mi>05</span><span class=p>,</span><span class=k>comment</span><span class=o>=</span><span class=s2>&#34;new&#34;</span><span class=w>  </span><span class=mi>1605592932144992788</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>&gt;</span><span class=w> </span><span class=k>select</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>name</span><span class=p>:</span><span class=w> </span><span class=n>cpu</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>time</span><span class=w>                </span><span class=k>comment</span><span class=w> </span><span class=k>host</span><span class=w> </span><span class=n>loading</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>----                ------- ---- -------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>1605592932144992788</span><span class=w> </span><span class=k>new</span><span class=w>     </span><span class=n>A</span><span class=w>    </span><span class=mi>0</span><span class=p>.</span><span class=mi>05</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=參考>參考</h2><p><a class=link href=https://docs.influxdata.com/influxdb/v2.0/reference/key-concepts/data-elements/#series target=_blank rel=noopener>influxdata - data elements</a></p><p><a class=link href=https://www.influxdata.com/blog/influxdb-shards-retention-policies/ target=_blank rel=noopener>influxdata - Simplifying InfluxDB: Shards and Retention Policies</a></p><p><a class=link href=https://www.mdeditor.tw/pl/pgbb/zh-tw target=_blank rel=noopener>influxDB shard - Go語言中文網</a></p></section><footer class=article-footer><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/influxdb-1-cr-ud/continuous-queries/><div class=article-details><h2 class=article-title>InfluxDB 1.X CQ</h2></div></a></article><article><a href=/p/influxdb-1-cr-ud/><div class=article-details><h2 class=article-title>InfluxDB 1.X CR-ud</h2></div></a></article><article><a href=/p/influxdb-1-cr-ud/database-mange-query/><div class=article-details><h2 class=article-title>InfluxDB 1.X Database Manage Query</h2></div></a></article><article><a href=/p/influxdb-1-cr-ud/insert/><div class=article-details><h2 class=article-title>InfluxDB 1.X INSERT 語句</h2></div></a></article><article><a href=/p/influxdb-1-cr-ud/select/><div class=article-details><h2 class=article-title>InfluxDB 1.X SELECT 語句</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

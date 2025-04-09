@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>參數 on FuweaY</title><link>https://FuweaY.github.io/tags/%E5%8F%83%E6%95%B8/</link><description>Recent content in 參數 on FuweaY</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Tue, 30 Apr 2024 12:00:00 +0800</lastBuildDate><atom:link href="https://FuweaY.github.io/tags/%E5%8F%83%E6%95%B8/index.xml" rel="self" type="application/rss+xml"/><item><title>innodb_flush_method</title><link>https://FuweaY.github.io/p/mysql-innodb-flush-method/</link><pubDate>Tue, 30 Apr 2024 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mysql-innodb-flush-method/</guid><description>&lt;h2 id="mysql-84-更新">MySQL 8.4 更新
+&lt;/h2>&lt;p>從 MySQL 8.4 開始，UNIX 預設值改為 O_DIRECT if supported, otherwise fsync
+所以未來不太需要調整此參數了&lt;/p>
+&lt;h2 id="原文-mysql-80">原文 (MySQL 8.0)
+&lt;/h2>&lt;p>&lt;img src="https://FuweaY.github.io/p/mysql-innodb-flush-method/innodb-flush-method.png"
+width="579"
+height="396"
+srcset="https://FuweaY.github.io/p/mysql-innodb-flush-method/innodb-flush-method_hu_d06c60ced4593ecb.png 480w, https://FuweaY.github.io/p/mysql-innodb-flush-method/innodb-flush-method_hu_c365051ad8f7b6b0.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="146"
+data-flex-basis="350px"
+>&lt;/p>
+&lt;p>設定 &lt;code>flush data&lt;/code> 到 InnoDB &lt;code>data files&lt;/code> 和 &lt;code>log files&lt;/code> 使用的方法，此參數會影響到 IO 吞吐量&lt;/p>
+&lt;ul>
+&lt;li>fsync(or 0)：InnoDB use &lt;code>fsync() system call&lt;/code> to flush data，這在 5.7、8.0 為默認設定。&lt;/li>
+&lt;li>O_DSYNC(or 1)：InnoDB use &lt;code>O_SYNC&lt;/code> to open and flush the &lt;code>log files&lt;/code>, and &lt;code>fsync()&lt;/code> to flush the &lt;code>data file&lt;/code>。 InnoDB不直接使用 &lt;code>O_DSYNC&lt;/code> 因為在許多 Unix 版本上都存在問題。&lt;/li>
+&lt;li>littlesync(or 2)：此選項用於內部性能測試，目前版本不支持。使用後風險自負。(5.7、8.0)&lt;/li>
+&lt;li>nosync(or 3)：此選項用於內部性能測試，目前版本不支持。使用後風險自負。(5.7、8.0)&lt;/li>
+&lt;li>O_DIRECT(or 4)：InnoDB use &lt;code>O_DIRECT (or directio() on Solaris)&lt;/code> to open the &lt;code>date files&lt;/code> , and use &lt;code>fsync()&lt;/code> to flush both the data and log files. 此選項在某些 GNU/Linux 版本、 FreeBSD 和 Solaris 上可以使用。&lt;/li>
+&lt;li>O_DIRECT_NO_FSYNC：InnoDB use &lt;code>O_DIRECT&lt;/code> during flushing I/O, but skips the &lt;code>fsync() system call&lt;/code> after each write operation.
+&lt;ol>
+&lt;li>在 5.7.25、8.0.14 之前，此設定不適用於 &lt;code>XFS&lt;/code>、 &lt;code>EXT4&lt;/code> 等 file system，因這類 file sysetm需要調用 &lt;code>fsync()&lt;/code> 來同步 &lt;code>file system metadata&lt;/code>的變更，如果不確定是否需要請調整為 &lt;code>O_DIRECT&lt;/code>。&lt;/li>
+&lt;li>在 5.7.25、8.0.14 開始，在建立新的文件、增加文件大小、關閉文件後這些變更到 &lt;code>file system metadata&lt;/code> 的情況才會調用 &lt;code>fsync()&lt;/code>，其餘情寫入操作會跳過 &lt;code>fsync()&lt;/code>。&lt;/li>
+&lt;li>如果 &lt;code>data files&lt;/code> 和 &lt;code>log files&lt;/code> 儲存在不同的設備，且 &lt;code>data files&lt;/code> 的儲存設備沒有後備電池，則可能導致數據丟失建議改為使用 &lt;code>O_DIRECT&lt;/code>。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;/ul>
+&lt;p>在 MySQL 8.0.14 開始，若 &lt;code>innodb_dedicated_server&lt;/code> 啟用時，則會將 &lt;code>innodb_flush_method&lt;/code> 設定為 &lt;code>O_DIRECT_NO_FSYNC&lt;/code>&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>設定值&lt;/th>
+&lt;th>Open log files&lt;/th>
+&lt;th>Flush log&lt;/th>
+&lt;th>Open dataFile&lt;/th>
+&lt;th>Flush data&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>fsync&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>fsync()&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>fsync()&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>O_DSYNC&lt;/td>
+&lt;td>O_SYNC&lt;/td>
+&lt;td>O_SYNC&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>fsync()&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>O_DIRECT&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>fsync()&lt;/td>
+&lt;td>O_DIRECT&lt;/td>
+&lt;td>fsync()&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>O_DIRECT_NO_FSYNC&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
+&lt;td>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h2 id="參考">參考
+&lt;/h2>&lt;p>&lt;a class="link" href="https://www.percona.com/blog/2020/11/03/adjusting-mysql-8-0-memory-parameters/" target="_blank" rel="noopener"
+>Adjusting MySQL 8.0 Memory Parameters - Percona&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://zhuanlan.zhihu.com/p/134669835" target="_blank" rel="noopener"
+>使用O_DIRECT_NO_FSYNC来提升MySQL性能 - 溫正湖(網易數據庫內核開發)&lt;/a>&lt;/p></description></item></channel></rss>

@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>MongoDB on FuweaY</title><link>https://FuweaY.github.io/categories/mongodb/</link><description>Recent content in MongoDB on FuweaY</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 20 Jul 2020 12:00:00 +0800</lastBuildDate><atom:link href="https://FuweaY.github.io/categories/mongodb/index.xml" rel="self" type="application/rss+xml"/><item><title>MongoDB Oplog 和 Journal File</title><link>https://FuweaY.github.io/p/mongodb-oplog-journalfile/</link><pubDate>Mon, 20 Jul 2020 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mongodb-oplog-journalfile/</guid><description>&lt;h2 id="journaling">Journaling
+&lt;/h2>&lt;p>關於 journal 在 MongoDB 官方文檔的開頭有以下描述：&lt;/p>
+&lt;blockquote>
+&lt;p>To provide durability in the event of a failure, MongoDB uses &lt;em>write ahead logging&lt;/em>
+to on-disk &lt;a class="link" href="https://www.mongodb.com/docs/v4.2/reference/glossary/#term-journal" target="_blank" rel="noopener"
+>journal&lt;/a> files.&lt;/p>&lt;/blockquote>
+&lt;p>可以讓我們了解 MongoDB 的 journal files 是一種預寫日誌(WAL)，作用就類似 MySQL 的 redolog ，都是為了在 DB 服務意外 crash 後恢復數據保證數據持久性的方法。&lt;/p>
+&lt;h3 id="journaling-和-wiredtiger-儲存引擎">Journaling 和 WiredTiger 儲存引擎
+&lt;/h3>&lt;p>WiredTiger 使用 checkpoints 來&lt;/p>
+&lt;p>恢復的流程大致如下：&lt;/p>
+&lt;ol>
+&lt;li>在 data files 中找到最後一個 checkpoint&lt;/li>
+&lt;li>在 journal files 中找到上一步驟中的 checkpoint&lt;/li>
+&lt;li>應用 journal files 中上一步驟 checkpoint 之後的操作&lt;/li>
+&lt;/ol>
+&lt;h3 id="journaling-process">Journaling Process
+&lt;/h3>&lt;p>WiredTiger 會為每個 clinet 端發起的寫操作創建一個 journal record 紀錄包含內部的所有寫入操作，例如：執行了 update 操作，journal record 除了會記錄更新操作同時也會記錄相應索引的修改。&lt;/p>
+&lt;p>MongoDB 設定 WiredTiger 使用內存 buffer 來儲存 journal record&lt;/p>
+&lt;p>WiredTiger 會在以下情況下將 buffere 中的 journal records 寫入 disk：&lt;/p>
+&lt;ul>
+&lt;li>對於 replica set members (包含 primary 和 secondary)：
+&lt;ul>
+&lt;li>If there are operations waiting for oplog entries. Operations that can wait for oplog entries include:
+&lt;ul>
+&lt;li>forward scanning queries against the oplog&lt;/li>
+&lt;li>read operations performed as part of &lt;a class="link" href="https://www.mongodb.com/docs/v4.2/core/read-isolation-consistency-recency/#causal-consistency" target="_blank" rel="noopener"
+>causally consistent sessions&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>對於 secondary 在每次批量應用 oplog 之後。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>當寫入操作包含 &lt;code>j: true&lt;/code> 選項。&lt;/li>
+&lt;li>依據 &lt;a class="link" href="https://www.mongodb.com/docs/v4.2/reference/configuration-options/#storage.journal.commitIntervalMs" target="_blank" rel="noopener"
+>&lt;code>storage.journal.commitIntervalMs&lt;/code>&lt;/a> 的設置頻率，預設為每 100 ms。&lt;/li>
+&lt;li>當 WiredTiger 創建一個新的 journal file 時，約為每 100MB 數據會創建一個新的 journal file。&lt;/li>
+&lt;/ul>
+&lt;aside>
+💡 透過 serverStatus 指令中的 wiredTiger.log 資訊可以查看 WiredTiger journal 的統計資訊。
+&lt;/aside>
+&lt;h3 id="journal-file">Journal file
+&lt;/h3>&lt;p>MongoDB 會在 dbPath 設定的目錄下中建立一個名為 journal 的目錄，WiredTiger 的 journal file 會在這個 journal 目錄下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">➜ ll /var/lib/mongo/journal
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">總計 &lt;span class="m">307200&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> root root &lt;span class="m">104857600&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:04 WiredTigerLog.0000000058
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> root root &lt;span class="m">104857600&lt;/span> 7月 &lt;span class="m">12&lt;/span> 16:49 WiredTigerPreplog.0000000027
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> root root &lt;span class="m">104857600&lt;/span> 7月 &lt;span class="m">15&lt;/span> 16:29 WiredTigerPreplog.0000000054
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中 WiredTigerLog.{序號} 是已記錄或使用中的 Journal file，而 WiredTigerPreplog.{序號} 是預先分配的 Journal file。&lt;/p>
+&lt;p>WiredTiger 的 journal file 最大大小為 100MB，當超過時會建立一個新的 journal file，此外會自動刪除舊的 journal file 僅保留從上一個 checkpoint 恢復所需要的文件。&lt;/p>
+&lt;h2 id="journal-record">Journal record
+&lt;/h2>&lt;ul>
+&lt;li>WiredTiger 會為每個 clinet 端發起的寫操作創建一個 journal record 紀錄包含內部的所有寫入操作，例如：執行了 update 操作，journal record 除了會記錄更新操作同時也會記錄相應索引的修改。&lt;/li>
+&lt;li>每個 record 會有一個 unique identifier&lt;/li>
+&lt;li>WiredTiger 的 journal record 最小有 128 bytes 的大小。&lt;/li>
+&lt;/ul>
+&lt;p>預設情況下 MongoDB 會將 WiredTiger 超過 128 bytes 的 journal record 使用 &lt;code>snappy&lt;/code> 進行壓縮，這部分可以透過&lt;a class="link" href="https://www.mongodb.com/docs/v4.2/reference/configuration-options/#storage.wiredTiger.engineConfig.journalCompressor" target="_blank" rel="noopener"
+>&lt;code>storage.wiredTiger.engineConfig.journalCompressor&lt;/code>&lt;/a> 設定不同的壓縮演算法&lt;/p>
+&lt;h2 id="oplog">OpLog
+&lt;/h2>&lt;p>MongoDB 在 primary node 上應用資料庫操作之後會將其記錄到 OpLog，之後 secondary node 會複製並應用這些操作，也就是類似於 MySQL 的 binlog。&lt;/p>
+&lt;p>oplog 中的每個操作都是冪等，也就是說 oplog 無論在目標 node 上應用一次或多次都會產生相同的結果。&lt;/p>
+&lt;p>cluster 中的所有 node 都包含 &lt;a class="link" href="http://local.oplog.rs" target="_blank" rel="noopener"
+>local.oplog.rs&lt;/a> collection 中的 oplog 副本，所以所有的 secondary node 可以向 cluster 內的任意 node 獲取 oplog。&lt;/p>
+&lt;h2 id="參考">參考
+&lt;/h2>&lt;p>Journal file&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/v4.2/core/journaling/" target="_blank" rel="noopener"
+>Journaling — MongoDB Manual&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/v4.2/core/wiredtiger/#storage-wiredtiger-checkpoints" target="_blank" rel="noopener"
+>WiredTiger Storage Engine — MongoDB Manual&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://blog.csdn.net/chechengtao/article/details/105913943" target="_blank" rel="noopener"
+>【MongoDB】数据存储（Storage）之 日志（Journaling）_奇斯的博客-CSDN博客_wiredtiger&lt;/a>&lt;/p>
+&lt;p>OpLOG&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/manual/core/replica-set-oplog/" target="_blank" rel="noopener"
+>Replica Set Oplog — MongoDB Manual&lt;/a>&lt;/p></description></item><item><title>MongoDB 備份還原</title><link>https://FuweaY.github.io/p/mongodb-backup-restore/</link><pubDate>Wed, 15 Jul 2020 12:00:00 +0800</pubDate><guid>https://FuweaY.github.io/p/mongodb-backup-restore/</guid><description>&lt;h2 id="mongodumpmongorestore">mongodump、mongorestore
+&lt;/h2>&lt;p>將 MongoDB 的資料內容導出成二進制檔案&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mongodump &amp;lt;options&amp;gt; &amp;lt;connection-string&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongorestore &amp;lt;options&amp;gt; &amp;lt;connection-string&amp;gt; &amp;lt;directory or file to restore&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>可以使用以下 &lt;code>--uri&lt;/code> 或者是 &lt;code>--host&lt;/code> 的方式指定要連線的 MongoDB 服務，如下範例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 連線到 mongoDB instance&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --uri&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb://mongodb0.example.com:27017&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --host&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb0.example.com:27017&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --host&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb0.example.com&amp;#34;&lt;/span> --port&lt;span class="o">=&lt;/span>&lt;span class="m">27017&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 連線到 mongoDB replica set (優先從 primary 讀取)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --uri&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017/?replicaSet=myReplicaSetName&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --host&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;myReplicaSetName/mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 連線到 mongoDB replica set (優先從 secondary 讀取)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --uri&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017/?replicaSet=myReplicaSetName&amp;amp;readPreference=secondary&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --host&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;myReplicaSetName/mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017&amp;#34;&lt;/span> --readPreference&lt;span class="o">=&lt;/span>secondary &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 連線到 mongoDB replica set (優先從 secondary 讀取，並指定 tag)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --uri&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017/?replicaSet=myReplicaSetName&amp;amp;readPreference=secondary&amp;amp;readPreferenceTags=region:east&amp;#34;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --host&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;myReplicaSetName/mongodb0.example.com:27017,mongodb1.example.com:27017,mongodb2.example.com:27017&amp;#34;&lt;/span> --readPreference&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{mode: &amp;#34;secondary&amp;#34;, tagSets: [ { &amp;#34;region&amp;#34;: &amp;#34;east&amp;#34; } ]}&amp;#39;&lt;/span> &lt;span class="o">[&lt;/span>additional options&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="行為">行為
+&lt;/h3>&lt;ol>
+&lt;li>只能還原到相同版本的 MongoDB 服務，並且 mongodump 和 mongorestore 版本也需要相同。&lt;/li>
+&lt;li>預設情況下會優先連線 Primary node，可以透過 &lt;code>readPreference&lt;/code> 選項來調整。&lt;/li>
+&lt;li>mongodump 不會 dump &lt;code>local&lt;/code> database。&lt;/li>
+&lt;li>mongodump 不會備份 index，需要自行重建。&lt;/li>
+&lt;li>如果有使用 read-only views，mongodump 預設只會 dump 其 metadata，需要添加 &lt;code>--viewAsCollections&lt;/code> 來匯出 view 中的數據。&lt;/li>
+&lt;li>mongodump 會在以下情況下 fails：
+&lt;ul>
+&lt;li>當 resharding 正在運行時。&lt;/li>
+&lt;li>當 reshardCollection 指令在 mongodump 操作期間執行時。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>對 WiredTiger 引擎使用 mongodump 會匯出未壓縮的數據。&lt;/li>
+&lt;li>mongodump 會影響到 mongod 的性能，如果數據量大於系統內存 mongodump 會導致 working set 被推出內存。&lt;/li>
+&lt;li>mongodump 需要具有欲備份 database 的 find 權限，內建的 &lt;code>backup&lt;/code> role 具有備份所有 database 的權限。&lt;/li>
+&lt;/ol>
+&lt;h3 id="常用選項">常用選項
+&lt;/h3>&lt;ul>
+&lt;li>
+&lt;p>&lt;code>--uri&lt;/code> ：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">--uri&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">mongodump --username joe --password secret1 mongodb://mongodb0.example.com:27017 --ssl
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--host=&amp;lt;hostname&amp;gt;&amp;lt;:port&amp;gt;, -h=&amp;lt;hostname&amp;gt;&amp;lt;:port&amp;gt;&lt;/code>：指定要連線的 mongod。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--readPreference=&amp;lt;string|document&amp;gt;&lt;/code>：指定優先讀取的 node，預設值為 primary，範例如下：&lt;/p>
+&lt;ul>
+&lt;li>maxStalenessSeconds：由於各種原因 secondary node 可以會落後 prmary node，該選項用來設定 secondary node 最大延遲的秒數，當 secondary 落後超過該秒數則 mongodump 停止進行讀取操作，該值必須大於等於 90。&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 優先讀取 secondary node&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--readPreference&lt;span class="o">=&lt;/span>secondary
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 優先讀取 secondary 中 tag 為 region:east 的 node，允許的最大延遲為 120&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--readPreference&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{mode: &amp;#34;secondary&amp;#34;, tagSets: [ { &amp;#34;region&amp;#34;: &amp;#34;east&amp;#34; } ], maxStalenessSeconds: 120}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--db=&amp;lt;database&amp;gt;, -d=&amp;lt;database&amp;gt;&lt;/code>：指定要備份的 database，若未指定會備份 &lt;code>local&lt;/code> 以外的所有 database。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--collection=&amp;lt;collection&amp;gt;, -c=&amp;lt;collection&amp;gt;&lt;/code>：指定要備份的 collection，若未指定會備份 database 內的所有 collection。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--query=&amp;lt;json&amp;gt;, -q=&amp;lt;json&amp;gt;&lt;/code>：必須搭配 &lt;code>--collection&lt;/code> 選項，僅匯出符合此條件的數據，必須使用單引號 &lt;code>'&lt;/code> 將查詢文檔包起來，範例如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mongodump -d&lt;span class="o">=&lt;/span>&lt;span class="nb">test&lt;/span> -c&lt;span class="o">=&lt;/span>records -q&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;{ &amp;#34;a&amp;#34;: { &amp;#34;$gte&amp;#34;: 3 }, &amp;#34;date&amp;#34;: { &amp;#34;$lt&amp;#34;: { &amp;#34;$date&amp;#34;: &amp;#34;2016-01-01T00:00:00.000Z&amp;#34; } } }&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--gzip&lt;/code>：壓縮輸出。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>--oplog&lt;/code>：當沒有該選項時，mongodump 運行期間的寫入&lt;/p>
+&lt;p>將 mongodump 運作期間產生的 oplog 一併匯出，該檔案提供了&lt;/p>
+&lt;p>mongodump &amp;ndash;oplog 運行過程中 client 端運行以下指令將導致 mogodump 失敗：&lt;/p>
+&lt;ul>
+&lt;li>renameCollection&lt;/li>
+&lt;li>db.collection.renameCollection()&lt;/li>
+&lt;li>db.collection.aggregate() with $out&lt;/li>
+&lt;/ul>
+&lt;p>mongodump &amp;ndash;oplog 必須完整備份 replica set ，因此不可和 &lt;code>--db&lt;/code> 及 &lt;code>--collection&lt;/code> 一起使用。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="備份策略">備份策略
+&lt;/h3>&lt;p>mogodump、mongorestore 可以作為單實例、一般 cluster 的備援方案&lt;/p>
+&lt;p>mongodump、mongorestore 通過與正在運行的 mongod instance 交互來運行，不僅會產生流量，還會強制資料庫透過記憶體讀取所有數據，因此會導致mongod 性能下降。&lt;/p>
+&lt;p>mogodump、mongorestore 不能作為 sharding cluster 的備援方案，因為 mongodump 創建的備份不會維護跨 shard 事務的原子性保證。&lt;/p>
+&lt;p>對於 sharding cluster 建議使用以下支持維護跨 shard 事務原子性保證的備援方案：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a class="link" href="https://www.mongodb.com/cloud/atlas?tck=docs_databasetools" target="_blank" rel="noopener"
+>MongoDB Atlas&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://www.mongodb.com/cloud/cloud-manager?tck=docs_databasetools" target="_blank" rel="noopener"
+>MongoDB Cloud Manager&lt;/a>&lt;/li>
+&lt;li>&lt;a class="link" href="https://www.mongodb.com/products/ops-manager?tck=docs_databasetools" target="_blank" rel="noopener"
+>MongoDB Ops Manager&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h2 id="mongoexport">mongoexport
+&lt;/h2>&lt;p>可以將 MongoDB 中的數據匯出成 JSON 或 CSV 格式。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">mongoexport --collection&lt;span class="o">=&lt;/span>&amp;lt;coll&amp;gt; &amp;lt;options&amp;gt; &amp;lt;connection-string&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="mongoimport">mongoimport
+&lt;/h2>&lt;p>將 mongoexport 或其他第三方匯出的 JSON、CSV 或 TSV 格式的數據匯入到 MongoDB。&lt;/p>
+&lt;h2 id="參考">參考
+&lt;/h2>&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/database-tools/mongodump/" target="_blank" rel="noopener"
+>mongodump — MongoDB Database Tools&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/database-tools/mongorestore/" target="_blank" rel="noopener"
+>mongorestore — MongoDB Database Tools&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/database-tools/mongoexport/" target="_blank" rel="noopener"
+>mongoexport — MongoDB Database Tools&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/database-tools/mongoimport/" target="_blank" rel="noopener"
+>mongoimport — MongoDB Database Tools&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/manual/tutorial/backup-and-restore-tools/" target="_blank" rel="noopener"
+>Back Up and Restore with MongoDB Tools — MongoDB Manual&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.mongodb.com/docs/manual/core/backups/" target="_blank" rel="noopener"
+>MongoDB Backup Methods — MongoDB Manual&lt;/a>&lt;/p>
+&lt;p>&lt;a class="link" href="https://www.cnblogs.com/yaoxing/p/mongodb-backup-rules.html" target="_blank" rel="noopener"
+>MongoDB的常规备份策略 - yaoxing - 博客园 (cnblogs.com)&lt;/a>&lt;/p></description></item></channel></rss>

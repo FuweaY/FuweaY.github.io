@@ -1,0 +1,805 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="介紹 MySQL 中不容易發現的隱式鎖 (implicit lock)"><title>隱式鎖</title>
+<link rel=canonical href=https://FuweaY.github.io/p/mysql-implicit-lock/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="隱式鎖"><meta property='og:description' content="介紹 MySQL 中不容易發現的隱式鎖 (implicit lock)"><meta property='og:url' content='https://FuweaY.github.io/p/mysql-implicit-lock/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:tag' content='deadlock'><meta property='article:tag' content='內核'><meta property='article:published_time' content='2025-04-01T12:00:00+08:00'><meta property='article:modified_time' content='2025-04-01T12:00:00+08:00'><meta name=twitter:title content="隱式鎖"><meta name=twitter:description content="介紹 MySQL 中不容易發現的隱式鎖 (implicit lock)"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#重現>重現</a></li><li><a href=#單獨測試>單獨測試</a></li><li><a href=#什麼是隱式鎖>什麼是隱式鎖?</a><ol><li><a href=#延遲加鎖機制>延遲加鎖機制</a></li><li><a href=#隱式鎖的簡介>隱式鎖的簡介</a></li><li><a href=#隱式鎖的特點>隱式鎖的特點</a></li><li><a href=#隱式鎖的使用>隱式鎖的使用</a></li><li><a href=#隱式鎖的具體過程>隱式鎖的具體過程</a></li></ol></li><li><a href=#參考>參考</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/mysql/>MySQL</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/mysql-implicit-lock/>隱式鎖</a></h2><h3 class=article-subtitle>介紹 MySQL 中不容易發現的隱式鎖 (implicit lock)</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Apr 01, 2025</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 17 分鐘</time></div></footer></div></header><section class=article-content><p>曾經在正式環境遇過一個特殊的情境，我們都知道 <code>DEADLOCK</code> 的成因在於不同的加鎖順序，加上這兩句 <code>WHERE</code>條件是相似的語法，卻還是遇到了 <code>DEADLOCK</code>，因此我的第一個反應是兩個 <code>TRANSACTION</code> 中已執行語句的 <code>LOCK</code> 未釋放，導致互相阻塞對方引起的。不過事後查看 <code>LOG</code> 加上詢問開發確認了該語句皆是單獨執行，只好回頭透過 <code>EXPLAIN</code> 確認執行計畫，發現兩句語法走了不同的 <code>INDEX</code>以此找到思路，最後了解發生成因並找到解決方案，更重要的是知道了 **<code>隱式鎖(implicit lock)</code>**的存在。</p><h2 id=重現>重現</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 準備資料
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>DATABASE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>USE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=o>`</span><span class=n>g_order</span><span class=o>`</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=w> </span><span class=nb>bigint</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;注單ID&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>round_id</span><span class=o>`</span><span class=w> </span><span class=nb>bigint</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;期數ID&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>site</span><span class=o>`</span><span class=w> </span><span class=nb>char</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;站台代號&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=k>user</span><span class=o>`</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;使用者ID&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>status</span><span class=o>`</span><span class=w> </span><span class=n>tinyint</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=n>unsigned</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;0&#39;</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;注單狀態&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>game_id</span><span class=o>`</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;遊戲ID&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>wager</span><span class=o>`</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>50</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;玩法&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>bet_info</span><span class=o>`</span><span class=w> </span><span class=n>json</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;下注資訊&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>bet</span><span class=o>`</span><span class=w> </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>25</span><span class=p>,</span><span class=mi>4</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;下注額度(無負值)&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>pay</span><span class=o>`</span><span class=w> </span><span class=nb>decimal</span><span class=p>(</span><span class=mi>25</span><span class=p>,</span><span class=mi>4</span><span class=p>)</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;派彩金額(無負值)&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>created_at</span><span class=o>`</span><span class=w> </span><span class=k>timestamp</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=k>CURRENT_TIMESTAMP</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;注單創建時間&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>updated_at</span><span class=o>`</span><span class=w> </span><span class=k>timestamp</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=k>CURRENT_TIMESTAMP</span><span class=w> </span><span class=k>ON</span><span class=w> </span><span class=k>UPDATE</span><span class=w> </span><span class=k>CURRENT_TIMESTAMP</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;注單更新時間&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>round_closed_at</span><span class=o>`</span><span class=w> </span><span class=k>timestamp</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>NULL</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=s1>&#39;0000-00-00 00:00:00&#39;</span><span class=w> </span><span class=k>COMMENT</span><span class=w> </span><span class=s1>&#39;關盤時間&#39;</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>odds_key</span><span class=o>`</span><span class=w> </span><span class=nb>varchar</span><span class=p>(</span><span class=mi>50</span><span class=p>)</span><span class=w> </span><span class=k>GENERATED</span><span class=w> </span><span class=n>ALWAYS</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=p>(</span><span class=n>json_unquote</span><span class=p>(</span><span class=n>json_extract</span><span class=p>(</span><span class=o>`</span><span class=n>bet_info</span><span class=o>`</span><span class=p>,</span><span class=s1>&#39;$.odds.key&#39;</span><span class=p>)))</span><span class=w> </span><span class=n>VIRTUAL</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=p>(</span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>round_closed_at</span><span class=o>`</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>KEY</span><span class=w> </span><span class=o>`</span><span class=n>ID_report</span><span class=o>`</span><span class=w> </span><span class=p>(</span><span class=o>`</span><span class=n>status</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>site</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=k>user</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>created_at</span><span class=o>`</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>KEY</span><span class=w> </span><span class=o>`</span><span class=n>ID_settle</span><span class=o>`</span><span class=w> </span><span class=p>(</span><span class=o>`</span><span class=n>round_id</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>status</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>game_id</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>wager</span><span class=o>`</span><span class=p>,</span><span class=o>`</span><span class=n>odds_key</span><span class=o>`</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=o>=</span><span class=n>InnoDB</span><span class=w> </span><span class=k>DEFAULT</span><span class=w> </span><span class=n>CHARSET</span><span class=o>=</span><span class=n>utf8mb4</span><span class=w> </span><span class=k>COMMENT</span><span class=o>=</span><span class=s1>&#39;訪客注單&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=o>`</span><span class=n>g_order</span><span class=o>`</span><span class=w> </span><span class=p>(</span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>round_id</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>site</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=k>user</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>status</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>game_id</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>wager</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>bet_info</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>bet</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>pay</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>created_at</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>updated_at</span><span class=o>`</span><span class=p>,</span><span class=w> </span><span class=o>`</span><span class=n>round_closed_at</span><span class=o>`</span><span class=p>)</span><span class=w> </span><span class=k>VALUES</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;site_1&#39;</span><span class=p>,</span><span class=s1>&#39;user_1&#39;</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;game_1&#39;</span><span class=p>,</span><span class=s1>&#39;any&#39;</span><span class=p>,</span><span class=s1>&#39;{\&#34;odds\&#34;: {\&#34;key\&#34;: \&#34;2\&#34;}}&#39;</span><span class=p>,</span><span class=mi>10000</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=mi>0</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:33:28&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-04 07:00:32&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>2</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;site_1&#39;</span><span class=p>,</span><span class=s1>&#39;user_1&#39;</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;game_1&#39;</span><span class=p>,</span><span class=s1>&#39;any&#39;</span><span class=p>,</span><span class=s1>&#39;{\&#34;odds\&#34;: {\&#34;key\&#34;: \&#34;3\&#34;}}&#39;</span><span class=p>,</span><span class=mi>10000</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=mi>0</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:33:35&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-04 07:00:32&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=p>),</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=mi>3</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;site_1&#39;</span><span class=p>,</span><span class=s1>&#39;user_1&#39;</span><span class=p>,</span><span class=mi>1</span><span class=p>,</span><span class=s1>&#39;game_1&#39;</span><span class=p>,</span><span class=s1>&#39;sum&#39;</span><span class=p>,</span><span class=s1>&#39;{\&#34;odds\&#34;: {\&#34;key\&#34;: \&#34;ALL\&#34;}}&#39;</span><span class=p>,</span><span class=mi>20000</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=mi>0</span><span class=p>.</span><span class=mi>0000</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:33:42&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-04 07:00:32&#39;</span><span class=p>,</span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 同時執行兩句語法，為了還原當時情境需使用 force index 指定索引
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>UPDATE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>.</span><span class=n>g_order</span><span class=w> </span><span class=k>force</span><span class=w> </span><span class=k>index</span><span class=p>(</span><span class=n>ID_report</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=n>pay</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>bet</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>10</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>round_closed_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>round_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>game_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;game_1&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>wager</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;compare&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>odds_key</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;1&#39;</span><span class=p>,</span><span class=s1>&#39;2&#39;</span><span class=p>,</span><span class=s1>&#39;3&#39;</span><span class=p>,</span><span class=s1>&#39;4&#39;</span><span class=p>,</span><span class=s1>&#39;5&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>.</span><span class=n>g_order</span><span class=w> </span><span class=k>force</span><span class=w> </span><span class=k>index</span><span class=p>(</span><span class=n>ID_settle</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=n>pay</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>0</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>round_closed_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>round_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>game_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;game_1&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>wager</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;any&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><img src=/p/mysql-implicit-lock/Transaction1-Query.png width=577 height=177 srcset="/p/mysql-implicit-lock/Transaction1-Query_hu_dcb7a00dd6945f5b.png 480w, /p/mysql-implicit-lock/Transaction1-Query_hu_f5101c995b4a0633.png 1024w" loading=lazy alt="第一個 Transaction Query" class=gallery-image data-flex-grow=325 data-flex-basis=782px></p><p><img src=/p/mysql-implicit-lock/Transaction2-Query.png width=813 height=194 srcset="/p/mysql-implicit-lock/Transaction2-Query_hu_fe43046f432095e7.png 480w, /p/mysql-implicit-lock/Transaction2-Query_hu_d751a0dbfbaf3e86.png 1024w" loading=lazy alt="第二個 Transaction Query，發生 deadlock" class=gallery-image data-flex-grow=419 data-flex-basis=1005px></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>------------------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>LATEST</span><span class=w> </span><span class=n>DETECTED</span><span class=w> </span><span class=n>DEADLOCK</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=mi>2020</span><span class=o>-</span><span class=mi>09</span><span class=o>-</span><span class=mi>29</span><span class=w> </span><span class=mi>03</span><span class=p>:</span><span class=mi>38</span><span class=p>:</span><span class=mi>46</span><span class=w> </span><span class=mi>0</span><span class=n>x7f22347f8700</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>***</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=k>TRANSACTION</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>TRANSACTION</span><span class=w> </span><span class=mi>12800</span><span class=p>,</span><span class=w> </span><span class=n>ACTIVE</span><span class=w> </span><span class=mi>0</span><span class=w> </span><span class=n>sec</span><span class=w> </span><span class=n>starting</span><span class=w> </span><span class=k>index</span><span class=w> </span><span class=k>read</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>mysql</span><span class=w> </span><span class=n>tables</span><span class=w> </span><span class=k>in</span><span class=w> </span><span class=n>use</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=n>locked</span><span class=w> </span><span class=mi>1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>LOCK</span><span class=w> </span><span class=n>WAIT</span><span class=w> </span><span class=mi>3</span><span class=w> </span><span class=k>lock</span><span class=w> </span><span class=n>struct</span><span class=p>(</span><span class=n>s</span><span class=p>),</span><span class=w> </span><span class=n>heap</span><span class=w> </span><span class=k>size</span><span class=w> </span><span class=mi>1136</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=w> </span><span class=k>row</span><span class=w> </span><span class=k>lock</span><span class=p>(</span><span class=n>s</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>MySQL</span><span class=w> </span><span class=n>thread</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=mi>11343</span><span class=p>,</span><span class=w> </span><span class=n>OS</span><span class=w> </span><span class=n>thread</span><span class=w> </span><span class=n>handle</span><span class=w> </span><span class=mi>139784886118144</span><span class=p>,</span><span class=w> </span><span class=n>query</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=mi>803</span><span class=w> </span><span class=mi>10</span><span class=p>.</span><span class=mi>17</span><span class=p>.</span><span class=mi>117</span><span class=p>.</span><span class=mi>203</span><span class=w> </span><span class=n>sysbench</span><span class=w> </span><span class=n>Searching</span><span class=w> </span><span class=k>rows</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=k>update</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>g_order</span><span class=w> </span><span class=k>force</span><span class=w> </span><span class=k>index</span><span class=p>(</span><span class=n>ID_report</span><span class=p>)</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=n>winlose</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=n>updated_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>CURTIME</span><span class=p>(),</span><span class=w> </span><span class=n>paid_amount</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>bet_amount</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>bet_info</span><span class=o>-&gt;</span><span class=s1>&#39;$.odds.value&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>round_closed_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2019-07-02 10:34:00&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>round_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>4781292</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>game_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;652B75-SSC5&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>wager</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;compare&#39;</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> </span><span class=k>AND</span><span class=w> </span><span class=n>odds_key</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;1:OVER&#39;</span><span class=p>,</span><span class=s1>&#39;2:UNDER&#39;</span><span class=p>,</span><span class=s1>&#39;3:OVER&#39;</span><span class=p>,</span><span class=s1>&#39;4:UNDER&#39;</span><span class=p>,</span><span class=s1>&#39;5:OVER&#39;</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>***</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=w> </span><span class=n>WAITING</span><span class=w> </span><span class=k>FOR</span><span class=w> </span><span class=n>THIS</span><span class=w> </span><span class=k>LOCK</span><span class=w> </span><span class=k>TO</span><span class=w> </span><span class=n>BE</span><span class=w> </span><span class=k>GRANTED</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>RECORD</span><span class=w> </span><span class=n>LOCKS</span><span class=w> </span><span class=k>space</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=mi>139</span><span class=w> </span><span class=n>page</span><span class=w> </span><span class=k>no</span><span class=w> </span><span class=mi>3</span><span class=w> </span><span class=n>n</span><span class=w> </span><span class=n>bits</span><span class=w> </span><span class=mi>72</span><span class=w> </span><span class=k>index</span><span class=w> </span><span class=k>PRIMARY</span><span class=w> </span><span class=k>of</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=o>`</span><span class=n>test_g_order</span><span class=o>`</span><span class=p>.</span><span class=o>`</span><span class=n>g_order</span><span class=o>`</span><span class=w> </span><span class=n>trx</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=mi>12800</span><span class=w> </span><span class=n>lock_mode</span><span class=w> </span><span class=n>X</span><span class=w> </span><span class=n>locks</span><span class=w> </span><span class=n>rec</span><span class=w> </span><span class=n>but</span><span class=w> </span><span class=k>not</span><span class=w> </span><span class=n>gap</span><span class=w> </span><span class=n>waiting</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Record</span><span class=w> </span><span class=k>lock</span><span class=p>,</span><span class=w> </span><span class=n>heap</span><span class=w> </span><span class=k>no</span><span class=w> </span><span class=mi>2</span><span class=w> </span><span class=n>PHYSICAL</span><span class=w> </span><span class=n>RECORD</span><span class=p>:</span><span class=w> </span><span class=n>n_fields</span><span class=w> </span><span class=mi>22</span><span class=p>;</span><span class=w> </span><span class=n>compact</span><span class=w> </span><span class=n>format</span><span class=p>;</span><span class=w> </span><span class=n>info</span><span class=w> </span><span class=n>bits</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>0</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>8</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0000</span><span class=n>a40000001cdb</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>         </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>1</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>4</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>5</span><span class=n>d1b3318</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=p>]</span><span class=w> </span><span class=mi>3</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>2</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>6</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0000000031</span><span class=n>ff</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>     </span><span class=mi>1</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>3</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>7</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>78000001700110</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>x</span><span class=w>   </span><span class=n>p</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>4</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>8</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>000000000048</span><span class=n>f4ea</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>      </span><span class=n>H</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>5</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>6</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>323238373335</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>228735</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>6</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>5</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>3530306370</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>500</span><span class=n>cp</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>7</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>30</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>35656137636538392</span><span class=n>d373365332d343565372d393932342d636631383836</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>5</span><span class=n>ea7ce89</span><span class=o>-</span><span class=mi>73</span><span class=n>e3</span><span class=o>-</span><span class=mi>45</span><span class=n>e7</span><span class=o>-</span><span class=mi>9924</span><span class=o>-</span><span class=n>cf1886</span><span class=p>;</span><span class=w> </span><span class=p>(</span><span class=n>total</span><span class=w> </span><span class=mi>36</span><span class=w> </span><span class=n>bytes</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>8</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>00</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>9</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>03</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>10</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>11</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>3036303232452</span><span class=n>d46415433</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>06022</span><span class=n>E</span><span class=o>-</span><span class=n>FAT3</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>11</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>3</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>616</span><span class=n>e74</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>ant</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>12</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>3</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>434</span><span class=n>e59</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>CNY</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>13</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>18</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>616</span><span class=n>e792d657175616c2d6e6f742d73616d65</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=k>any</span><span class=o>-</span><span class=n>equal</span><span class=o>-</span><span class=k>not</span><span class=o>-</span><span class=n>same</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>14</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>30</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0002004</span><span class=n>d001200040016000500001b000249006f6464736974656d730200</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>    </span><span class=n>M</span><span class=w>             </span><span class=n>I</span><span class=w> </span><span class=n>oddsitems</span><span class=w>  </span><span class=p>;</span><span class=w> </span><span class=p>(</span><span class=n>total</span><span class=w> </span><span class=mi>78</span><span class=w> </span><span class=n>bytes</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>15</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>02</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>16</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>12</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>800000000000000027100000</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>         </span><span class=s1>&#39;   ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 17: len 12; hex 800000000000000026480000; asc         &amp;H  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 18: len 12; hex 800000000000000000000000; asc             ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 19: len 4; hex 5d1b32f8; asc ] 2 ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 20: len 4; hex 5f72ac46; asc _r F;;
+</span></span></span><span class=line><span class=cl><span class=s1> 21: len 0; hex ; asc ;;
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>*** (2) TRANSACTION:
+</span></span></span><span class=line><span class=cl><span class=s1>TRANSACTION 12799, ACTIVE 0 sec updating or deleting
+</span></span></span><span class=line><span class=cl><span class=s1>mysql tables in use 1, locked 1
+</span></span></span><span class=line><span class=cl><span class=s1>5 lock struct(s), heap size 1136, 6 row lock(s), undo log entries 1
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 11342, OS thread handle 139784886388480, query id 802 10.17.117.203 sysbench updating
+</span></span></span><span class=line><span class=cl><span class=s1>UPDATE g_order force index(ID_settle) SET status = 3, winlose = 2, updated_at = CURTIME(), paid_amount = 0 WHERE round_closed_at = &#39;</span><span class=mi>2019</span><span class=o>-</span><span class=mi>07</span><span class=o>-</span><span class=mi>02</span><span class=w> </span><span class=mi>10</span><span class=p>:</span><span class=mi>34</span><span class=p>:</span><span class=mi>00</span><span class=s1>&#39; AND round_id = 4781290 AND game_id = &#39;</span><span class=mi>06022</span><span class=n>E</span><span class=o>-</span><span class=n>FAT3</span><span class=s1>&#39; AND wager = &#39;</span><span class=k>any</span><span class=o>-</span><span class=n>equal</span><span class=o>-</span><span class=k>not</span><span class=o>-</span><span class=n>same</span><span class=s1>&#39; AND status = 1
+</span></span></span><span class=line><span class=cl><span class=s1>*** (2) HOLDS THE LOCK(S):
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 139 page no 3 n bits 72 index PRIMARY of table `test_g_order`.`g_order` trx id 12799 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>Record lock, heap no 2 PHYSICAL RECORD: n_fields 22; compact format; info bits 0
+</span></span></span><span class=line><span class=cl><span class=s1> 0: len 8; hex 0000a40000001cdb; asc         ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 1: len 4; hex 5d1b3318; asc ] 3 ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 2: len 6; hex 0000000031ff; asc     1 ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 3: len 7; hex 78000001700110; asc x   p  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 4: len 8; hex 000000000048f4ea; asc      H  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 5: len 6; hex 323238373335; asc 228735;;
+</span></span></span><span class=line><span class=cl><span class=s1> 6: len 5; hex 3530306370; asc 500cp;;
+</span></span></span><span class=line><span class=cl><span class=s1> 7: len 30; hex 35656137636538392d373365332d343565372d393932342d636631383836; asc 5ea7ce89-73e3-45e7-9924-cf1886; (total 36 bytes);
+</span></span></span><span class=line><span class=cl><span class=s1> 8: len 1; hex 00; asc  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 9: len 1; hex 03; asc  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 10: len 11; hex 3036303232452d46415433; asc 06022E-FAT3;;
+</span></span></span><span class=line><span class=cl><span class=s1> 11: len 3; hex 616e74; asc ant;;
+</span></span></span><span class=line><span class=cl><span class=s1> 12: len 3; hex 434e59; asc CNY;;
+</span></span></span><span class=line><span class=cl><span class=s1> 13: len 18; hex 616e792d657175616c2d6e6f742d73616d65; asc any-equal-not-same;;
+</span></span></span><span class=line><span class=cl><span class=s1> 14: len 30; hex 0002004d001200040016000500001b000249006f6464736974656d730200; asc    M             I oddsitems  ; (total 78 bytes);
+</span></span></span><span class=line><span class=cl><span class=s1> 15: len 1; hex 02; asc  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 16: len 12; hex 800000000000000027100000; asc         &#39;</span><span class=w>   </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>17</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>12</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>800000000000000026480000</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>         </span><span class=o>&amp;</span><span class=n>H</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>18</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>12</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>800000000000000000000000</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>             </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>19</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>4</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>5</span><span class=n>d1b32f8</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=p>]</span><span class=w> </span><span class=mi>2</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>20</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>4</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>5</span><span class=n>f72ac46</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>_r</span><span class=w> </span><span class=n>F</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>21</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>0</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Record</span><span class=w> </span><span class=k>lock</span><span class=p>,</span><span class=w> </span><span class=n>heap</span><span class=w> </span><span class=k>no</span><span class=w> </span><span class=mi>3</span><span class=w> </span><span class=n>PHYSICAL</span><span class=w> </span><span class=n>RECORD</span><span class=p>:</span><span class=w> </span><span class=n>n_fields</span><span class=w> </span><span class=mi>22</span><span class=p>;</span><span class=w> </span><span class=n>compact</span><span class=w> </span><span class=n>format</span><span class=p>;</span><span class=w> </span><span class=n>info</span><span class=w> </span><span class=n>bits</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>0</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>8</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0000</span><span class=n>a40000001cdc</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>         </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>1</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>4</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>5</span><span class=n>d1b3318</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=p>]</span><span class=w> </span><span class=mi>3</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>2</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>6</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0000000031</span><span class=n>fc</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>     </span><span class=mi>1</span><span class=w> </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>3</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>7</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>760000016</span><span class=n>f01c6</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>v</span><span class=w>   </span><span class=n>o</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>4</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>8</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>000000000048</span><span class=n>f4ea</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>      </span><span class=n>H</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>5</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>6</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>323238373335</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>228735</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>6</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>5</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>3530306370</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>500</span><span class=n>cp</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>7</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>30</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>35656137636538392</span><span class=n>d373365332d343565372d393932342d636631383836</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>5</span><span class=n>ea7ce89</span><span class=o>-</span><span class=mi>73</span><span class=n>e3</span><span class=o>-</span><span class=mi>45</span><span class=n>e7</span><span class=o>-</span><span class=mi>9924</span><span class=o>-</span><span class=n>cf1886</span><span class=p>;</span><span class=w> </span><span class=p>(</span><span class=n>total</span><span class=w> </span><span class=mi>36</span><span class=w> </span><span class=n>bytes</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>8</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>00</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>9</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>01</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>10</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>11</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>3036303232452</span><span class=n>d46415433</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=mi>06022</span><span class=n>E</span><span class=o>-</span><span class=n>FAT3</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>11</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>3</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>616</span><span class=n>e74</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>ant</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>12</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>3</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>434</span><span class=n>e59</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=n>CNY</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>13</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>18</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>616</span><span class=n>e792d657175616c2d6e6f742d73616d65</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w> </span><span class=k>any</span><span class=o>-</span><span class=n>equal</span><span class=o>-</span><span class=k>not</span><span class=o>-</span><span class=n>same</span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>14</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>30</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>0002004</span><span class=n>d001200040016000500001b000249006f6464736974656d730200</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>    </span><span class=n>M</span><span class=w>             </span><span class=n>I</span><span class=w> </span><span class=n>oddsitems</span><span class=w>  </span><span class=p>;</span><span class=w> </span><span class=p>(</span><span class=n>total</span><span class=w> </span><span class=mi>78</span><span class=w> </span><span class=n>bytes</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>15</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>02</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>  </span><span class=p>;;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w> </span><span class=mi>16</span><span class=p>:</span><span class=w> </span><span class=n>len</span><span class=w> </span><span class=mi>12</span><span class=p>;</span><span class=w> </span><span class=n>hex</span><span class=w> </span><span class=mi>800000000000000027100000</span><span class=p>;</span><span class=w> </span><span class=k>asc</span><span class=w>         </span><span class=s1>&#39;   ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 17: len 12; hex 800000000000000026480000; asc         &amp;H  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 18: len 12; hex 800000000000000000000000; asc             ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 19: len 4; hex 5d1b32ff; asc ] 2 ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 20: len 4; hex 5f72ac45; asc _r E;;
+</span></span></span><span class=line><span class=cl><span class=s1> 21: len 0; hex ; asc ;;
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>*** (2) WAITING FOR THIS LOCK TO BE GRANTED:
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 139 page no 4 n bits 72 index ID_report of table `test_g_order`.`g_order` trx id 12799 lock_mode X locks rec but not gap waiting
+</span></span></span><span class=line><span class=cl><span class=s1>Record lock, heap no 2 PHYSICAL RECORD: n_fields 6; compact format; info bits 0
+</span></span></span><span class=line><span class=cl><span class=s1> 0: len 1; hex 01; asc  ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 1: len 5; hex 3530306370; asc 500cp;;
+</span></span></span><span class=line><span class=cl><span class=s1> 2: len 30; hex 35656137636538392d373365332d343565372d393932342d636631383836; asc 5ea7ce89-73e3-45e7-9924-cf1886; (total 36 bytes);
+</span></span></span><span class=line><span class=cl><span class=s1> 3: len 4; hex 5d1b32f8; asc ] 2 ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 4: len 8; hex 0000a40000001cdb; asc         ;;
+</span></span></span><span class=line><span class=cl><span class=s1> 5: len 4; hex 5d1b3318; asc ] 3 ;;
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>*** WE ROLL BACK TRANSACTION (1)
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=單獨測試>單獨測試</h2><ol><li><p>查看兩句語法單獨執行的 LOCK 狀況</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Transaction 1
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>innodb_status_output_locks</span><span class=o>=</span><span class=k>ON</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>begin</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>.</span><span class=n>g_order</span><span class=w> </span><span class=k>force</span><span class=w> </span><span class=k>index</span><span class=p>(</span><span class=n>ID_report</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=n>pay</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>bet</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>10</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>round_closed_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>round_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>game_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;game_1&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>wager</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;compare&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>odds_key</span><span class=w> </span><span class=k>IN</span><span class=w> </span><span class=p>(</span><span class=s1>&#39;1&#39;</span><span class=p>,</span><span class=s1>&#39;2&#39;</span><span class=p>,</span><span class=s1>&#39;3&#39;</span><span class=p>,</span><span class=s1>&#39;4&#39;</span><span class=p>,</span><span class=s1>&#39;5&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>show</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=n>innodb</span><span class=w> </span><span class=n>status</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>TRANSACTIONS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>Trx</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=n>counter</span><span class=w> </span><span class=mi>5901</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Purge</span><span class=w> </span><span class=n>done</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>trx</span><span class=s1>&#39;s n:o &lt; 5900 undo n:o &lt; 0 state: running but idle
+</span></span></span><span class=line><span class=cl><span class=s1>History list length 0
+</span></span></span><span class=line><span class=cl><span class=s1>LIST OF TRANSACTIONS FOR EACH SESSION:
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064415296, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064414440, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 5900, ACTIVE 6 sec
+</span></span></span><span class=line><span class=cl><span class=s1>3 lock struct(s), heap size 1136, 7 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 20189, OS thread handle 139863067211520, query id 44318 localhost root starting
+</span></span></span><span class=line><span class=cl><span class=s1>show engine innodb status
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 5900 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_report 來找符合的row，因此在符合的INDEX加上 X鎖(next-key lock)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 5 n bits 72 index ID_report of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5900 lock_mode
+</span></span></span><span class=line><span class=cl><span class=s1>**# 因為目前 ID_report 所有的值都符合條件，所以也在正無窮上加 nexk-key lock**
+</span></span></span><span class=line><span class=cl><span class=s1>Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+</span></span></span><span class=line><span class=cl><span class=s1> 0: len 8; hex 73757072656d756d; asc supremum;; 
+</span></span></span><span class=line><span class=cl><span class=s1>...
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第三步便是透過INDEX找到Primay key並在其上加上X鎖 (Record lock)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5900 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>...
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 因為第一步驟已經在正無窮加上 next-key lock，所以不需要補上 gap lock**
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>SELECT DISTINCT ENGINE_TRANSACTION_ID AS TID,OBJECT_NAME,INDEX_NAME,LOCK_TYPE,LOCK_MODE,LOCK_STATUS 
+</span></span></span><span class=line><span class=cl><span class=s1>FROM performance_schema.data_locks;
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| TID  | OBJECT_NAME | INDEX_NAME | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| 5950 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5950 | g_order     | ID_report  | RECORD    | X             | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5950 | g_order     | PRIMARY    | RECORD    | X,REC_NOT_GAP | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span></code></pre></td></tr></table></div></div><p><img src=/p/mysql-implicit-lock/Transaction1-Lock.png width=536 height=376 srcset="/p/mysql-implicit-lock/Transaction1-Lock_hu_2817795f0e5c82bd.png 480w, /p/mysql-implicit-lock/Transaction1-Lock_hu_d3023f2288319f77.png 1024w" loading=lazy alt="第一個 Query Lock 順序" class=gallery-image data-flex-grow=142 data-flex-basis=342px></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- Transaction 2
+</span></span></span><span class=line><span class=cl><span class=c1>-- 開啟moniter，觀察lock情形
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>SET</span><span class=w> </span><span class=k>GLOBAL</span><span class=w> </span><span class=n>innodb_status_output_locks</span><span class=o>=</span><span class=k>ON</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>begin</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=n>test_g_order</span><span class=p>.</span><span class=n>g_order</span><span class=w> </span><span class=k>force</span><span class=w> </span><span class=k>index</span><span class=p>(</span><span class=n>ID_settle</span><span class=p>)</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SET</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>3</span><span class=p>,</span><span class=w> </span><span class=n>pay</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>WHERE</span><span class=w> </span><span class=n>round_closed_at</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;2019-07-02 10:30:00&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>round_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=w>  
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>game_id</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;game_1&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>wager</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;any&#39;</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>AND</span><span class=w> </span><span class=n>status</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>show</span><span class=w> </span><span class=n>engine</span><span class=w> </span><span class=n>innodb</span><span class=w> </span><span class=n>status</span><span class=err>\</span><span class=k>G</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>TRANSACTIONS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>Trx</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=n>counter</span><span class=w> </span><span class=mi>5899</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Purge</span><span class=w> </span><span class=n>done</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>trx</span><span class=s1>&#39;s n:o &lt; 5899 undo n:o &lt; 0 state: running but idle
+</span></span></span><span class=line><span class=cl><span class=s1>History list length 2
+</span></span></span><span class=line><span class=cl><span class=s1>LIST OF TRANSACTIONS FOR EACH SESSION:
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064415296, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064414440, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 5894, ACTIVE 10 sec
+</span></span></span><span class=line><span class=cl><span class=s1>4 lock struct(s), heap size 1136, 5 row lock(s), undo log entries 2
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 20189, OS thread handle 139863067211520, query id 44245 localhost root starting
+</span></span></span><span class=line><span class=cl><span class=s1>show engine innodb status
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 5894 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_settle 來找符合的row，因此在符合的INDEX加上 X鎖(next-key lock)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 6 n bits 72 index ID_settle of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5894 lock_mode X
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第三步便是透過INDEX找到Primay key並在其上加上X鎖 (Record lock)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5894 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第四步：需要在第一個不符合條件的Index ID_settle 加上X鎖 (gap lock)，避免INSERT新的資料**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 6 n bits 72 index ID_settle of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5894 lock_mode X locks gap before re
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>SELECT DISTINCT ENGINE_TRANSACTION_ID AS TID,OBJECT_NAME,INDEX_NAME,LOCK_TYPE,LOCK_MODE,LOCK_STATUS 
+</span></span></span><span class=line><span class=cl><span class=s1>FROM performance_schema.data_locks;
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| TID  | OBJECT_NAME | INDEX_NAME | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| 5943 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5943 | g_order     | ID_settle  | RECORD    | X             | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5943 | g_order     | PRIMARY    | RECORD    | X,REC_NOT_GAP | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5943 | g_order     | ID_settle  | RECORD    | X,GAP         | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span></code></pre></td></tr></table></div></div><p><img src=/p/mysql-implicit-lock/Transaction2-Lock.png.png width=535 height=374 srcset="/p/mysql-implicit-lock/Transaction2-Lock.png_hu_aa7f24ed9edadc92.png 480w, /p/mysql-implicit-lock/Transaction2-Lock.png_hu_4d3b473fd9a8637c.png 1024w" loading=lazy alt="第二個 Query Lock 順序" class=gallery-image data-flex-grow=143 data-flex-basis=343px></p></li><li><p>先執行 Transaction 1 再執行 Transaction 2</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>TRANSACTIONS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>Trx</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=n>counter</span><span class=w> </span><span class=mi>11644</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Purge</span><span class=w> </span><span class=n>done</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>trx</span><span class=s1>&#39;s n:o &lt; 11642 undo n:o &lt; 0 state: running but idle
+</span></span></span><span class=line><span class=cl><span class=s1>History list length 3
+</span></span></span><span class=line><span class=cl><span class=s1>LIST OF TRANSACTIONS FOR EACH SESSION:
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064415296, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064414440, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 11643, ACTIVE 6 sec starting index read
+</span></span></span><span class=line><span class=cl><span class=s1>mysql tables in use 1, locked 1
+</span></span></span><span class=line><span class=cl><span class=s1>LOCK WAIT 3 lock struct(s), heap size 1136, 2 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 141084, OS thread handle 139863066326784, query id 287362 10.17.117.203 root Searching rows for update
+</span></span></span><span class=line><span class=cl><span class=s1>UPDATE test_g_order.g_order force index(ID_settle)
+</span></span></span><span class=line><span class=cl><span class=s1>SET status = 3, pay = 0
+</span></span></span><span class=line><span class=cl><span class=s1>WHERE round_closed_at = &#39;</span><span class=mi>2019</span><span class=o>-</span><span class=mi>07</span><span class=o>-</span><span class=mi>02</span><span class=w> </span><span class=mi>10</span><span class=p>:</span><span class=mi>30</span><span class=p>:</span><span class=mi>00</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND round_id = 1
+</span></span></span><span class=line><span class=cl><span class=s1>AND game_id = &#39;</span><span class=n>game_1</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND wager = &#39;</span><span class=k>any</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND status = 1
+</span></span></span><span class=line><span class=cl><span class=s1>------- TRX HAS BEEN WAITING 6 SEC FOR THIS LOCK TO BE GRANTED:
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 2 等待 Transaction 1 釋放 PRIMARY KEY 上的 LOCK**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 216 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` trx id 11643 lock_mode X locks rec but not gap waiting
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 2**
+</span></span></span><span class=line><span class=cl><span class=s1>------------------
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 11643 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_settle 來找符合的row，因此在符合的INDEX加上 X鎖(next-key 包含了gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 216 page no 6 n bits 72 index ID_settle of table `test_g_order`.`g_order` trx id 11643 lock_mode X
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第三步便是透過INDEX找到Primay key並在其上加上X鎖 (Record lock不含gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 216 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` trx id 11643 lock_mode X locks rec but not gap waiting
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 1**
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 11642, ACTIVE 7 sec
+</span></span></span><span class=line><span class=cl><span class=s1>3 lock struct(s), heap size 1136, 7 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 141082, OS thread handle 139863067801344, query id 287365 10.17.117.203 root starting
+</span></span></span><span class=line><span class=cl><span class=s1>show engine innodb status
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 11642 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_report 來找符合的row，因此在符合的INDEX加上 X鎖(next-key 包含了gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 216 page no 5 n bits 72 index ID_report of table `test_g_order`.`g_order` trx id 11642 lock_mode X
+</span></span></span><span class=line><span class=cl><span class=s1>**# 因為目前 ID_report 所有的值都符合條件，所以也在正無窮上加 nexk-key lock**
+</span></span></span><span class=line><span class=cl><span class=s1>Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+</span></span></span><span class=line><span class=cl><span class=s1> 0: len 8; hex 73757072656d756d; asc supremum;; 
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第三步便是透過INDEX找到Primay key並在其上加上X鎖 (Record lock不含gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 216 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` trx id 11642 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>SELECT DISTINCT ENGINE_TRANSACTION_ID AS TID,OBJECT_NAME,INDEX_NAME,LOCK_TYPE,LOCK_MODE,LOCK_STATUS 
+</span></span></span><span class=line><span class=cl><span class=s1>FROM performance_schema.data_locks;
+</span></span></span><span class=line><span class=cl><span class=s1>+-------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| TID   | OBJECT_NAME | INDEX_NAME | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS |
+</span></span></span><span class=line><span class=cl><span class=s1>+-------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| 11642 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 11642 | g_order     | ID_report  | RECORD    | X             | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 11642 | g_order     | PRIMARY    | RECORD    | X,REC_NOT_GAP | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 11643 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 11643 | g_order     | ID_settle  | RECORD    | X             | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 11643 | g_order     | PRIMARY    | RECORD    | X,REC_NOT_GAP | WAITING     |
+</span></span></span><span class=line><span class=cl><span class=s1>+-------+-------------+------------+-----------+---------------+-------------+
+</span></span></span></code></pre></td></tr></table></div></div><p><img src=/p/mysql-implicit-lock/Transaction1-2.png width=1088 height=434 srcset="/p/mysql-implicit-lock/Transaction1-2_hu_bc392cbda73c9c55.png 480w, /p/mysql-implicit-lock/Transaction1-2_hu_5daea1b78895dd6c.png 1024w" loading=lazy alt="按照 1 -> 2 的順序執行Lock 過程" class=gallery-image data-flex-grow=250 data-flex-basis=601px></p></li><li><p>先執行 Transaction 2 再執行 Transaction 1，可以發現 Transaction 2 多了一個 LOCK</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>TRANSACTIONS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>------------
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>Trx</span><span class=w> </span><span class=n>id</span><span class=w> </span><span class=n>counter</span><span class=w> </span><span class=mi>5957</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>Purge</span><span class=w> </span><span class=n>done</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>trx</span><span class=s1>&#39;s n:o &lt; 5956 undo n:o &lt; 0 state: running but idle
+</span></span></span><span class=line><span class=cl><span class=s1>History list length 2
+</span></span></span><span class=line><span class=cl><span class=s1>LIST OF TRANSACTIONS FOR EACH SESSION:
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064415296, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 421338064414440, not started
+</span></span></span><span class=line><span class=cl><span class=s1>0 lock struct(s), heap size 1136, 0 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 5956, ACTIVE 12 sec starting index read
+</span></span></span><span class=line><span class=cl><span class=s1>mysql tables in use 1, locked 1
+</span></span></span><span class=line><span class=cl><span class=s1>LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s)
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 25903, OS thread handle 139863067506432, query id 56073 localhost root Searching rows for update
+</span></span></span><span class=line><span class=cl><span class=s1>UPDATE test_g_order.g_order force index(ID_settle)
+</span></span></span><span class=line><span class=cl><span class=s1>SET status = 3, pay = bet * 10
+</span></span></span><span class=line><span class=cl><span class=s1>WHERE round_closed_at = &#39;</span><span class=mi>2019</span><span class=o>-</span><span class=mi>07</span><span class=o>-</span><span class=mi>02</span><span class=w> </span><span class=mi>10</span><span class=p>:</span><span class=mi>30</span><span class=p>:</span><span class=mi>00</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND round_id = 1
+</span></span></span><span class=line><span class=cl><span class=s1>AND game_id = &#39;</span><span class=n>game_1</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND wager = &#39;</span><span class=n>compare</span><span class=s1>&#39;
+</span></span></span><span class=line><span class=cl><span class=s1>AND status = 1
+</span></span></span><span class=line><span class=cl><span class=s1>AND odds_key IN (&#39;</span><span class=mi>1</span><span class=s1>&#39;,&#39;</span><span class=mi>2</span><span class=s1>&#39;,&#39;</span><span class=mi>3</span><span class=s1>&#39;,&#39;</span><span class=mi>4</span><span class=s1>&#39;,&#39;</span><span class=mi>5</span><span class=s1>&#39;)
+</span></span></span><span class=line><span class=cl><span class=s1>------- TRX HAS BEEN WAITING 12 SEC FOR THIS LOCK TO BE GRANTED:
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 1 等待 Transaction 2 釋放 ID_report Index 上的 LOCK**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 5 n bits 72 index ID_report of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5956 lock_mode X waiting
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 1**
+</span></span></span><span class=line><span class=cl><span class=s1>------------------
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 5956 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_report 來找符合的row，因此在符合的INDEX加上 X鎖(next-key 包含了gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 5 n bits 72 index ID_report of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5956 lock_mode X waiting
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>**# Transaction 2**
+</span></span></span><span class=line><span class=cl><span class=s1>---TRANSACTION 5951, ACTIVE 18 sec
+</span></span></span><span class=line><span class=cl><span class=s1>5 lock struct(s), heap size 1136, 6 row lock(s), undo log entries 2
+</span></span></span><span class=line><span class=cl><span class=s1>MySQL thread id 25899, OS thread handle 139863067211520, query id 56077 localhost root starting
+</span></span></span><span class=line><span class=cl><span class=s1>show engine innodb status
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第一步驟是在整個TABLE上加上 IX鎖 (意向排他鎖)，來預防其他third對整個TABLE加S鎖或X鎖**
+</span></span></span><span class=line><span class=cl><span class=s1>TABLE LOCK table `test_g_order`.`g_order` trx id 5951 lock mode IX
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第二步因為透過index ID_settle 來找符合的row，因此在符合的INDEX加上 X鎖(next-key 包含了gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 6 n bits 72 index ID_settle of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5951 lock_mode X
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第三步便是透過INDEX找到Primay key並在其上加上X鎖 (Record lock不含gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 4 n bits 72 index PRIMARY of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5951 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第四步Index ID_settle 加上X鎖 (Gap Lock)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 6 n bits 72 index ID_settle of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5951 lock_mode X locks gap before rec
+</span></span></span><span class=line><span class=cl><span class=s1>**# 第五步Index ID_report 加上X鎖 (Record lock不含gap)**
+</span></span></span><span class=line><span class=cl><span class=s1>RECORD LOCKS space id 4 page no 5 n bits 72 index ID_report of table `test_g_order`.`g_order` 
+</span></span></span><span class=line><span class=cl><span class=s1>trx id 5951 lock_mode X locks rec but not gap
+</span></span></span><span class=line><span class=cl><span class=s1>
+</span></span></span><span class=line><span class=cl><span class=s1>SELECT DISTINCT ENGINE_TRANSACTION_ID AS TID,OBJECT_NAME,INDEX_NAME,LOCK_TYPE,LOCK_MODE,LOCK_STATUS 
+</span></span></span><span class=line><span class=cl><span class=s1>FROM performance_schema.data_locks;
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| TID  | OBJECT_NAME | INDEX_NAME | LOCK_TYPE | LOCK_MODE     | LOCK_STATUS |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span><span class=line><span class=cl><span class=s1>| 5956 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5956 | g_order     | ID_report  | RECORD    | X             | WAITING     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5951 | g_order     | NULL       | TABLE     | IX            | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5951 | g_order     | ID_settle  | RECORD    | X             | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5951 | g_order     | PRIMARY    | RECORD    | X,REC_NOT_GAP | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5951 | g_order     | ID_settle  | RECORD    | X,GAP         | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>| 5951 | g_order     | ID_report  | RECORD    | X,REC_NOT_GAP | GRANTED     |
+</span></span></span><span class=line><span class=cl><span class=s1>+------+-------------+------------+-----------+---------------+-------------+
+</span></span></span></code></pre></td></tr></table></div></div><p><img src=/p/mysql-implicit-lock/Transaction2-1.png width=1112 height=433 srcset="/p/mysql-implicit-lock/Transaction2-1_hu_1c4dc038ecb7d04f.png 480w, /p/mysql-implicit-lock/Transaction2-1_hu_6bafbb1a9956f20b.png 1024w" loading=lazy alt="按照 2 -> 1 的順序執行Lock 過程" class=gallery-image data-flex-grow=256 data-flex-basis=616px></p></li></ol><p>經由以上測試，我們確認了此例的 Lock 的成因如下表格－</p><div class=table-wrapper><table><thead><tr><th>Transaction 1</th><th>Transaction 2</th></tr></thead><tbody><tr><td>Lock IX(TABLE)</td><td>Lock IX(TABLE)</td></tr><tr><td>Lock ID_report(Next-Key)</td><td>Lock ID_settle(Next-Key)</td></tr><tr><td></td><td>Lock primary key(Record)</td></tr><tr><td></td><td>Lock ID_settle(Gap)</td></tr><tr><td>Waiting Lock PK(Record)</td><td></td></tr><tr><td></td><td>Waiting Lock convert impli to expli ID_report(Record)</td></tr><tr><td>DEADLOCK</td><td>DEADLOCK</td></tr></tbody></table></div><p><img src=/p/mysql-implicit-lock/deadlock.png width=1039 height=475 srcset="/p/mysql-implicit-lock/deadlock_hu_89c779bd8f29f6a0.png 480w, /p/mysql-implicit-lock/deadlock_hu_72cbb28ed883663b.png 1024w" loading=lazy alt="發生 deadlock 原因解析" class=gallery-image data-flex-grow=218 data-flex-basis=524px></p><p>在分析個過程中，我們可以看到當優先執行 <code>Transaction 2</code>時，我們可以看到最後一個 <code>wating Lock ID_report (no gap)</code> 是不存在的，直到我們執行 <code>Transaction 1</code>時，這一個 <code>LOCK</code>才會出現，這就是 <strong><code>隱式鎖(implicit lock)</code></strong> 。</p><h2 id=什麼是隱式鎖>什麼是隱式鎖?</h2><p>在 <a class=link href=https://dev.mysql.com/doc/refman/8.0/en/innodb-locks-set.html target=_blank rel=noopener>MySQL官方文檔</a> 中關於隱式鎖就只有這麼一條說明－</p><blockquote><p>When UPDATE modifies a clustered index record, implicit locks are taken on affected secondary index records.</p></blockquote><p>資訊量實在不是很足夠，再加上討論到的文章其實不是很多，因此只好搭配少量的文章搭配源碼來了解，下方出現的源碼取自 8.0 版本，並加上一些個人加上的註解方便理解。</p><h3 id=延遲加鎖機制>延遲加鎖機制</h3><hr><p>讓我們試想一下，如果一張表上面有多個索引，這樣在異動其中一筆資料的時候，豈不是要在好幾個 B+Tree 上同時加鎖嗎 ?</p><p>加鎖也是一筆開銷，如果衝突的可能性很小的時候，多數的鎖應該都是不必要的。</p><p>Innodb 實現了一個延遲加鎖機制，以此來減少加鎖的數量，減少效能損耗的同時也提升併發性能。</p><h3 id=隱式鎖的簡介>隱式鎖的簡介</h3><hr><p>Innodb 實現的延遲加鎖的機制，在源碼中被稱為**<code>隱式鎖(implicit lock)</code>**</p><p>隱式鎖沒有實際加鎖，而是一種 <code>logical entity</code>，transaction 是否持有是透過一些過程來計算的。</p><p>隱式鎖中有一個重要的元素： <code>db_trx_id</code>！用來儲存產生該筆紀錄的 <code>transaction ID</code>，這是在 <code>MVCC</code> 中實現 <strong><code>快照讀</code></strong> 也有使用到的元素。</p><h3 id=隱式鎖的特點>隱式鎖的特點</h3><hr><ol><li>只有在很可能發生衝突時才加鎖，減少鎖的數量</li><li>隱式鎖式針對 B+Tree 上被修改的紀錄，因此都是 <code>record lock</code>，不可能是 <code>gap lock</code> 或 <code>next-key lock</code></li><li>和顯式鎖的區別：</li></ol><div class=table-wrapper><table><thead><tr><th>顯式鎖 (explicit lock)</th><th>隱式鎖 (implicit lock)</th></tr></thead><tbody><tr><td>實際加鎖</td><td>邏輯加鎖</td></tr><tr><td>佔用內存</td><td>不佔用內存</td></tr></tbody></table></div><h3 id=隱式鎖的使用>隱式鎖的使用</h3><hr><ol><li><p><code>INSERT</code> 操作一般只會加隱式鎖，不加顯示鎖。除了以下情況：</p><ul><li>若 <code>INSERT</code> 的位置有 <code>gap lock</code> 時，則會加上 <code>insert intention lock</code>。</li></ul><p><img src=/p/mysql-implicit-lock/Insert-implicit-lock-1-0.png width=1339 height=239 srcset="/p/mysql-implicit-lock/Insert-implicit-lock-1-0_hu_a725ace468c5b59a.png 480w, /p/mysql-implicit-lock/Insert-implicit-lock-1-0_hu_6b2e7a1d2a24796a.png 1024w" loading=lazy class=gallery-image data-flex-grow=560 data-flex-basis=1344px></p><p><img src=/p/mysql-implicit-lock/Insert-implicit-lock-1-1.png width=1082 height=216 srcset="/p/mysql-implicit-lock/Insert-implicit-lock-1-1_hu_f30769d80c8cd4f4.png 480w, /p/mysql-implicit-lock/Insert-implicit-lock-1-1_hu_aec3f93b08f3da56.png 1024w" loading=lazy class=gallery-image data-flex-grow=500 data-flex-basis=1202px></p><ul><li>若 <code>INSERT</code> 的位置發生唯一鍵衝突時，則會將對方的隱式鎖升級為顯示鎖，自己則加上 <code>shared lock</code> 等待。</li></ul><p><img src=/p/mysql-implicit-lock/Insert-implicit-lock-2-0.png width=1137 height=116 srcset="/p/mysql-implicit-lock/Insert-implicit-lock-2-0_hu_57215754696e5bc6.png 480w, /p/mysql-implicit-lock/Insert-implicit-lock-2-0_hu_2cbc0d14efb9666b.png 1024w" loading=lazy class=gallery-image data-flex-grow=980 data-flex-basis=2352px></p><p><img src=/p/mysql-implicit-lock/Insert-implicit-lock-2-1.png width=1063 height=219 srcset="/p/mysql-implicit-lock/Insert-implicit-lock-2-1_hu_19aa2877585cfd20.png 480w, /p/mysql-implicit-lock/Insert-implicit-lock-2-1_hu_aabd9aa45f4394c2.png 1024w" loading=lazy class=gallery-image data-flex-grow=485 data-flex-basis=1164px></p></li><li><p><code>UPDATE</code> 和 <code>DELETE</code> 操作在查詢時，會直接對查詢走的 <code>index</code> 和 <code>primary key</code> 使用顯示鎖，其他的 <code>index</code> 使用隱式鎖。</p></li></ol><h3 id=隱式鎖的具體過程>隱式鎖的具體過程</h3><hr><ol><li>如果 transaction 要獲取行鎖 (不論是顯式或隱式)，則需要先判斷是否存在活躍的隱式鎖<ul><li><p>cluster index：首先取得在該紀錄上持有隱式鎖的 transaction id，隨後透過 cluster index 中的隱藏欄位 <code>db_trx_id</code> 判斷前者是否為活躍事務。</p><p><img src=/p/mysql-implicit-lock/source-code-1.png width=711 height=766 srcset="/p/mysql-implicit-lock/source-code-1_hu_4e3b98a037b6d7e9.png 480w, /p/mysql-implicit-lock/source-code-1_hu_e439abfcb54efd55.png 1024w" loading=lazy class=gallery-image data-flex-grow=92 data-flex-basis=222px></p><ul><li>secondary index：<ol><li><p>從 secondary index page 中取得 <code>PAGE_MAX_TRX_ID (T1)</code></p><blockquote><p><code>PAGE_MAX_TRX_ID</code>：該字段存在於 secondary index page 中，用於保存修改該 page 的最大 Transaction ID，當該 page 的任何紀錄被更新後，都會更新此值。</p></blockquote></li><li><p>取得 InnoDB 活躍中事務中 <code>最小的 Transaction ID (T2)</code></p></li><li><p>假如 T1 &lt; T2 則說明修改這個 page 的 T1 已經 commit ，因此不存在隱式鎖。</p><p>反之，則必須再透過 cluster index 搭配 undo log 回溯舊版本數據進行判斷，此步驟較為複雜暫不詳解 (可透過 <code>storage\innobase\row\row0vers.cc</code> 中 <code>row_vers_impl_x_locked</code> 和 <code>row_vers_impl_x_locked_low</code> 了解詳細過程)</p></li></ol></li></ul></li></ul></li></ol><p><img src=/p/mysql-implicit-lock/source-code-2.png width=707 height=191 srcset="/p/mysql-implicit-lock/source-code-2_hu_4cfd908dbdbfb4dd.png 480w, /p/mysql-implicit-lock/source-code-2_hu_aa5d69389f9f2986.png 1024w" loading=lazy class=gallery-image data-flex-grow=370 data-flex-basis=888px></p><p><img src=/p/mysql-implicit-lock/source-code-3.png width=715 height=941 srcset="/p/mysql-implicit-lock/source-code-3_hu_d1cbd4e2bc88e453.png 480w, /p/mysql-implicit-lock/source-code-3_hu_eeedd2f93d87ed90.png 1024w" loading=lazy class=gallery-image data-flex-grow=75 data-flex-basis=182px></p><ol start=2><li><p>若為活躍事務，則為該活躍事務將 <code>implicit lock</code> 轉換為 <code>explicit lock</code></p><p>另外可已注意到 <code>implicit lock</code> 轉換後的 <code>explicit lock</code> 不會有 <code>gap lock</code></p><p><img src=/p/mysql-implicit-lock/source-code-4.png width=786 height=360 srcset="/p/mysql-implicit-lock/source-code-4_hu_eedbaf727624d70f.png 480w, /p/mysql-implicit-lock/source-code-4_hu_75454dba6b85423a.png 1024w" loading=lazy class=gallery-image data-flex-grow=218 data-flex-basis=524px></p></li><li><p>等待加鎖成功後修改數據，並且將自己的 Transaction id 寫入 <code>db_trx_id</code>；或者是 timeout。</p></li></ol><h2 id=參考>參考</h2><p><a class=link href="https://planet.mysql.com/entry/?id=79629" target=_blank rel=noopener>Introduction to Transaction Locks in InnoDB Storage Engine (from oracle blog) - plant MySQL 備份</a></p><p><a class=link href=https://blog.csdn.net/sun_ashe/article/details/82499483 target=_blank rel=noopener>Introduction to Transaction Locks in InnoDB Storage Engine (from oracle blog) - CSDN 備份</a></p><p><a class=link href=https://docs.huihoo.com/mysql/percona/live/mysql-conference-2015/Understanding-InnoDB-locks-and-deadlocks.pdf target=_blank rel=noopener>percona live - mysql conference 2015 - Understanding InnoDB locks and deadlocks (page 44)</a></p><p><a class=link href=%E9%9A%B1%E5%BC%8F%E9%8E%96%28implicit%20lock%29%20e467409b715f4c2888953772b5dc3fe5/Understanding-InnoDB-locks-and-deadlocks.pdf>Understanding-InnoDB-locks-and-deadlocks.pdf</a></p><p><a class=link href=https://mariadb.org/wp-content/uploads/2018/02/Deep-Dive_-InnoDB-Transactions-and-Write-Paths.pdf target=_blank rel=noopener>M18 Deep Dive InnoDB Transactions and Write Paths</a></p><p><a class=link href=%E9%9A%B1%E5%BC%8F%E9%8E%96%28implicit%20lock%29%20e467409b715f4c2888953772b5dc3fe5/Deep-Dive_-InnoDB-Transactions-and-Write-Paths.pdf>Deep-Dive_-InnoDB-Transactions-and-Write-Paths.pdf</a></p><p><a class=link href=http://www.uml.org.cn/sjjm/201205302.asp target=_blank rel=noopener>MySQL数据库InnoDB存储引擎中的锁机制</a></p><p><a class=link href=http://www.fanyilun.me/2017/04/20/MySQL%E5%8A%A0%E9%94%81%E5%88%86%E6%9E%90/ target=_blank rel=noopener>MySQL加锁分析</a></p><p><a class=link href=https://github.com/hedengcheng/tech/blob/master/database/MySQL/InnoDB%20Transaction%20Lock%20and%20MVCC.pdf target=_blank rel=noopener>InnoDB Transaction Lock and MVCC - 何登成 (page 31)</a></p><p><a class=link href=%E9%9A%B1%E5%BC%8F%E9%8E%96%28implicit%20lock%29%20e467409b715f4c2888953772b5dc3fe5/InnoDB_Transaction_Lock_and_MVCC.pdf>InnoDB Transaction Lock and MVCC.pdf</a></p><p><a class=link href="http://mysql.taobao.org/monthly/2015/12/01/?spm=a2c6h.12873639.0.0.63591453HCfF7l" target=_blank rel=noopener>MySQL · 引擎特性 · InnoDB 事务子系统介绍 (數據庫內核月報 - 2015/12)</a></p><p><a class=link href=http://mysql.taobao.org/monthly/2016/01/01/ target=_blank rel=noopener>MySQL · 引擎特性 · InnoDB 事务锁系统简介 (數據庫內核月報 - 2016/01)</a></p><p><a class=link href=http://mysql.taobao.org/monthly/2020/09/06/ target=_blank rel=noopener>MySQL · 引擎特性 · InnoDB隐式锁功能解析 (數據庫內核月報 - 2020/09)</a></p><p><a class=link href=https://keithlan.github.io/2017/06/05/innodb_locks_1/ target=_blank rel=noopener>MySQL锁系列（一）之锁的种类和</a></p><p><a class=link href=https://blog.csdn.net/taozhi20084525/article/details/19545231 target=_blank rel=noopener>innodB的隐式锁</a></p></section><footer class=article-footer><section class=article-tags><a href=/tags/deadlock/>Deadlock</a>
+<a href=/tags/%E5%85%A7%E6%A0%B8/>內核</a></section><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/mysql-partition-deadlock/><div class=article-details><h2 class=article-title>partition deadlock</h2></div></a></article><article><a href=/p/mysql-group-commit/><div class=article-details><h2 class=article-title>Group Commit</h2></div></a></article><article><a href=/p/mysql-semi-join-and-anti-join/><div class=article-details><h2 class=article-title>semi-join(半連結)和anti-join(反連結)</h2></div></a></article><article><a href=/p/mysql-exists-optimize/><div class=article-details><h2 class=article-title>MySQL8.0 EXISTS 及 NOT IN/EXISTS 優化</h2></div></a></article><article><a href=/p/mysql-mts/><div class=article-details><h2 class=article-title>並行複製 (Multi-Thread Slave, MTS)</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>

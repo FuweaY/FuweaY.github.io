@@ -1,0 +1,530 @@
+<!doctype html><html lang=zh-tw dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="介紹 ClickHouse MergeTree 引擎"><title>ClickHouse MergeTree 引擎</title>
+<link rel=canonical href=https://FuweaY.github.io/p/clickhouse-mergetree/><link rel=stylesheet href=/scss/style.min.f28263e5961b456312e0eedc7ff92ffd1c19229bede3556136a281ca9ab8bf59.css><meta property='og:title' content="ClickHouse MergeTree 引擎"><meta property='og:description' content="介紹 ClickHouse MergeTree 引擎"><meta property='og:url' content='https://FuweaY.github.io/p/clickhouse-mergetree/'><meta property='og:site_name' content='FuweaY'><meta property='og:type' content='article'><meta property='article:section' content='Post'><meta property='article:published_time' content='2024-10-11T12:00:00+08:00'><meta property='article:modified_time' content='2024-10-11T12:00:00+08:00'><meta name=twitter:title content="ClickHouse MergeTree 引擎"><meta name=twitter:description content="介紹 ClickHouse MergeTree 引擎"><link rel="shortcut icon" href=/favicon.png></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label=切換選單>
+<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=/img/avatar_hu_da86993f15b2a166.png width=300 height=300 class=site-logo loading=lazy alt=Avatar>
+</a><span class=emoji>🐱</span></figure><div class=site-meta><h1 class=site-name><a href=/>FuweaY</a></h1><h2 class=site-description>熱愛分享的 DBA 小天地</h2></div></header><ol class=menu-social><li><a href=https://github.com/FuweaY target=_blank title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
+<span>Home</span></a></li><li><a href=/archives/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+<span>Archives</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
+<span>Search</span></a></li><li><a href=/links/><svg class="icon icon-tabler icon-tabler-link" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M10 14a3.5 3.5.0 005 0l4-4a3.5 3.5.0 00-5-5l-.5.5"/><path d="M14 10a3.5 3.5.0 00-5 0l-4 4a3.5 3.5.0 005 5l.5-.5"/></svg>
+<span>Links</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
+<span>夜晚模式</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">目錄</h2><div class=widget--toc><nav id=TableOfContents><ol><li><a href=#replacing-mergetree>Replacing MergeTree</a><ol><li><a href=#範例>範例</a></li></ol></li><li><a href=#summing-mergetree>Summing MergeTree</a><ol><li><a href=#範例-1>範例</a></li></ol></li><li><a href=#aggregating-mergetree>Aggregating MergeTree</a><ol><li><a href=#範例-2>範例</a></li></ol></li><li><a href=#collapsing-mergetree>Collapsing MergeTree</a><ol><li><a href=#摺疊算法>摺疊算法</a></li><li><a href=#範例-3>範例</a></li><li><a href=#注意事項>注意事項</a></li></ol></li><li><a href=#versioned-collapsing-mergetree>Versioned Collapsing MergeTree</a><ol><li><a href=#範例-4>範例</a></li></ol></li><li><a href=#graphite-mergetree>Graphite MergeTree</a></li><li><a href=#參考>參考</a></li></ol></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/clickhouse/>ClickHouse</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/p/clickhouse-mergetree/>ClickHouse MergeTree 引擎</a></h2><h3 class=article-subtitle>介紹 ClickHouse MergeTree 引擎</h3></div><footer class=article-time><div><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
+<time class=article-time--published>Oct 11, 2024</time></div><div><svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+<time class=article-time--reading>閱讀時間: 7 分鐘</time></div></footer></div></header><section class=article-content><p>MergeTree 表引擎</p><ol><li>Sparse Primary Index</li><li>Partition</li><li>Data Replication</li><li>Data Sampling</li></ol><p><img src=/p/clickhouse-mergetree/Untitled.png width=891 height=193 srcset="/p/clickhouse-mergetree/Untitled_hu_f25dbd9206190900.png 480w, /p/clickhouse-mergetree/Untitled_hu_11de15ee0f029a4d.png 1024w" loading=lazy class=gallery-image data-flex-grow=461 data-flex-basis=1107px></p><h2 id=replacing-mergetree>Replacing MergeTree</h2><p>特色：在 merge 時會刪除具有相同 sorting key 的資料。</p><p>注意事項：</p><ul><li>重複的判斷是依照 <code>ORDER BY</code> 而不是 <code>Primary key</code></li><li>因為只有在 merge 時會觸發，因此不保證任何時刻都沒有重複資料。</li><li>因為只有在 merge 時會觸發，因此不同 partition 的資料不會去重。</li></ul><p>缺點：</p><ul><li>想要得到正確的結果只能透過 <code>FINAL</code> 修飾符，或者手動執行 <code>OPTIMIZE</code> 來讓 TABLE 觸發 Merge，不論哪一種都是昂貴的操作。</li></ul><p>以下為建立一個 ReplacingMergeTree 的語法：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>[</span><span class=k>IF</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>EXISTS</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=n>db</span><span class=p>.]</span><span class=k>table_name</span><span class=w> </span><span class=p>[</span><span class=k>ON</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=k>cluster</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name1</span><span class=w> </span><span class=p>[</span><span class=n>type1</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr1</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name2</span><span class=w> </span><span class=p>[</span><span class=n>type2</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr2</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ReplacingMergeTree</span><span class=p>([</span><span class=n>ver</span><span class=p>])</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>PRIMARY</span><span class=w> </span><span class=k>KEY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SAMPLE</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SETTINGS</span><span class=w> </span><span class=n>name</span><span class=o>=</span><span class=n>value</span><span class=p>,</span><span class=w> </span><span class=p>...]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>相關參數：</p><ul><li>ver - 帶有版本號的欄位，允許 UInt*、Date、DateTime、DateTime64 的欄位，可選參數。</li></ul><p>若未指定 ver 在 merge 時，同樣 sorting key 的資料會保留最後插入的一筆。</p><p>當指定 ver 在 merge 時，同樣 sorting key 的資料會保留 ver 指定的欄位最高的一筆，如果相同則同樣是保留最後插入的一筆。</p><h3 id=範例>範例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- without ver - the last inserted &#39;wins&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>replacing_test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=k>key</span><span class=o>`</span><span class=w> </span><span class=n>Int64</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>someCol</span><span class=o>`</span><span class=w> </span><span class=n>String</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>eventTime</span><span class=o>`</span><span class=w> </span><span class=n>DateTime</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ReplacingMergeTree</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>replacing_test</span><span class=w> </span><span class=k>Values</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;first&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;2020-01-01 01:01:01&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>replacing_test</span><span class=w> </span><span class=k>Values</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;second&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;2020-01-01 00:00:00&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>replacing_testFINAL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬───────────</span><span class=n>eventTime</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>01</span><span class=o>-</span><span class=mi>01</span><span class=w> </span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴─────────────────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- with ver - the row with the biggest ver &#39;wins&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>DROP</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>replacing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>replacing_test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=k>key</span><span class=o>`</span><span class=w> </span><span class=n>Int64</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>someCol</span><span class=o>`</span><span class=w> </span><span class=n>String</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>eventTime</span><span class=o>`</span><span class=w> </span><span class=n>DateTime</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>ReplacingMergeTree</span><span class=p>(</span><span class=n>eventTime</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>replacing_test</span><span class=w> </span><span class=k>Values</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;first&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;2020-01-01 01:01:01&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>replacing_test</span><span class=w> </span><span class=k>Values</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;second&#39;</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;2020-01-01 00:00:00&#39;</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>還沒觸發</span><span class=w> </span><span class=n>merge</span><span class=err>，因此沒有發生刪除</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>replacing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬───────────</span><span class=n>eventTime</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>01</span><span class=o>-</span><span class=mi>01</span><span class=w> </span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=p>:</span><span class=mi>00</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>first</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>01</span><span class=o>-</span><span class=mi>01</span><span class=w> </span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴─────────────────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>使用</span><span class=w> </span><span class=k>FINAL</span><span class=w> </span><span class=err>修飾符直接查到最後結果</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>replacing_test</span><span class=w> </span><span class=k>FINAL</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬───────────</span><span class=n>eventTime</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>first</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>01</span><span class=o>-</span><span class=mi>01</span><span class=w> </span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴─────────────────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>使用</span><span class=w> </span><span class=n>optimize</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=err>觸發合併後查詢</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>OPTIMIZE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>replacing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>replacing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬───────────</span><span class=n>eventTime</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>first</span><span class=w>   </span><span class=err>│</span><span class=w> </span><span class=mi>2020</span><span class=o>-</span><span class=mi>01</span><span class=o>-</span><span class=mi>01</span><span class=w> </span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=p>:</span><span class=mi>01</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴─────────────────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=summing-mergetree>Summing MergeTree</h2><p>特色：在 merge 時有相同 sorting key 的資料會進行合併，並依設定將指定或全部的數值欄位進行相加，非彙總的欄位則只會保留最早插入的數據。</p><p>注意事項：</p><ul><li>判斷是依照 <code>ORDER BY</code> 而不是 <code>Primary key</code></li><li>因為只有在 merge 時會觸發，因此不保證任何時刻資料都已彙整完畢，因此建議查詢時仍舊顯示指定 SUM()、GROUP BY。</li><li>因為只有在 merge 時觸發，因此不同 partition 的資料不會合併。</li></ul><p>以下為建立一個 SummingMergeTree 的語法：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>[</span><span class=k>IF</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>EXISTS</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=n>db</span><span class=p>.]</span><span class=k>table_name</span><span class=w> </span><span class=p>[</span><span class=k>ON</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=k>cluster</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name1</span><span class=w> </span><span class=p>[</span><span class=n>type1</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr1</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name2</span><span class=w> </span><span class=p>[</span><span class=n>type2</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr2</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>SummingMergeTree</span><span class=p>([</span><span class=n>columns</span><span class=p>])</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SAMPLE</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SETTINGS</span><span class=w> </span><span class=n>name</span><span class=o>=</span><span class=n>value</span><span class=p>,</span><span class=w> </span><span class=p>...]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>相關參數：</p><ul><li>columns - 指定要彙總的欄位名稱，所選的欄位必須為數值型態，並且不可在 ORDER BY 中。為可選的參數，如果未指定則會加總所有的非 ORDER BY 的數值型態欄位。<ul><li>非彙總的欄位只會保留最早插入的數據。</li></ul></li></ul><h3 id=範例-1>範例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>summtt</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>key</span><span class=w> </span><span class=n>UInt32</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>value</span><span class=w> </span><span class=n>UInt32</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>SummingMergeTree</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>summtt</span><span class=w> </span><span class=k>Values</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>),(</span><span class=mi>1</span><span class=p>,</span><span class=mi>2</span><span class=p>),(</span><span class=mi>2</span><span class=p>,</span><span class=mi>1</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=k>key</span><span class=p>,</span><span class=w> </span><span class=n>value</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>summtt</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=k>sum</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>          </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>          </span><span class=mi>3</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴────────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>避免有還未</span><span class=w> </span><span class=n>merge</span><span class=w> </span><span class=err>的資料，因此應該總是使用</span><span class=w> </span><span class=k>sum</span><span class=err>、</span><span class=k>group</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=err>進行查詢</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=k>key</span><span class=p>,</span><span class=w> </span><span class=k>sum</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>summtt</span><span class=w> </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=k>sum</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>          </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>          </span><span class=mi>3</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴────────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=aggregating-mergetree>Aggregating MergeTree</h2><p>特色：在 merge 時有相同 sorting key 的資料會進行合併，並按照預先定義的條件聚合資料。</p><p>注意事項：</p><ul><li>判斷是依照 <code>ORDER BY</code> 而不是 <code>Primary key</code></li><li>因為只有在 merge 時會觸發，因此不保證任何時刻資料都已彙整完畢，因此建議查詢時仍舊顯示指定 SUM()、GROUP BY。</li><li>因為只有在 merge 時觸發，因此不同 partition 的資料不會合併。</li></ul><p>以下為建立一個 AggregatingMergeTree 的語法：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>[</span><span class=k>IF</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>EXISTS</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=n>db</span><span class=p>.]</span><span class=k>table_name</span><span class=w> </span><span class=p>[</span><span class=k>ON</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=k>cluster</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name1</span><span class=w> </span><span class=p>[</span><span class=n>type1</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr1</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name2</span><span class=w> </span><span class=p>[</span><span class=n>type2</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr2</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>AggregatingMergeTree</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SAMPLE</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>TTL</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SETTINGS</span><span class=w> </span><span class=n>name</span><span class=o>=</span><span class=n>value</span><span class=p>,</span><span class=w> </span><span class=p>...]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=範例-2>範例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=c1>-- 建表
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>db_merge</span><span class=p>.</span><span class=n>t_merge_agg</span><span class=w> </span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>id</span><span class=o>`</span><span class=w> </span><span class=n>String</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>city</span><span class=o>`</span><span class=w> </span><span class=n>String</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=o>`</span><span class=n>code</span><span class=o>`</span><span class=w> </span><span class=n>AggregateFunction</span><span class=p>(</span><span class=n>uniq</span><span class=p>,</span><span class=n>String</span><span class=p>),</span><span class=w> </span><span class=c1>-- 聚合字段 等同於 UNIQ(code)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=o>`</span><span class=n>value</span><span class=o>`</span><span class=w> </span><span class=n>AggregateFunction</span><span class=p>(</span><span class=k>sum</span><span class=p>,</span><span class=n>UInt32</span><span class=p>),</span><span class=w> </span><span class=c1>-- 聚合字段 等同於 SUM(value)
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>  </span><span class=o>`</span><span class=n>create_time</span><span class=o>`</span><span class=w> </span><span class=n>DateTime</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>AggregatingMergeTree</span><span class=p>()</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>partition</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=n>toYYYYMM</span><span class=p>(</span><span class=n>create_time</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=p>(</span><span class=n>id</span><span class=p>,</span><span class=n>city</span><span class=p>)</span><span class=w> </span><span class=c1>-- 可以視為 group by id,city
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>primary</span><span class=w> </span><span class=k>key</span><span class=w> </span><span class=n>id</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 插入数据
+</span></span></span><span class=line><span class=cl><span class=c1>-- 需要使用 UNIQ() 對應的 uniqState 方法 和 sum 對應的 sumState 方法，並使用 INSERT INTO SELECT 來插入
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>insert</span><span class=w> </span><span class=k>into</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>db_merge</span><span class=p>.</span><span class=n>t_merge_agg</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>select</span><span class=w> </span><span class=s1>&#39;A01&#39;</span><span class=p>,</span><span class=s1>&#39;shenzhen&#39;</span><span class=p>,</span><span class=n>uniqState</span><span class=p>(</span><span class=s1>&#39;code1&#39;</span><span class=p>),</span><span class=n>sumState</span><span class=p>(</span><span class=n>toUInt32</span><span class=p>(</span><span class=mi>100</span><span class=p>)),</span><span class=s1>&#39;2021-06-04 15:27:22&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>union</span><span class=w> </span><span class=k>all</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>select</span><span class=w> </span><span class=s1>&#39;A01&#39;</span><span class=p>,</span><span class=s1>&#39;shenzhen&#39;</span><span class=p>,</span><span class=n>uniqState</span><span class=p>(</span><span class=s1>&#39;code2&#39;</span><span class=p>),</span><span class=n>sumState</span><span class=p>(</span><span class=n>toUInt32</span><span class=p>(</span><span class=mi>200</span><span class=p>)),</span><span class=s1>&#39;2021-06-04 15:28:22&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=c1>-- 查询数据
+</span></span></span><span class=line><span class=cl><span class=c1>-- 需要调用 UNIQ对应的 uniqMrege 方法 和 sum 对应的 sumMerge 方法
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>select</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=n>city</span><span class=p>,</span><span class=n>uniqMerge</span><span class=p>(</span><span class=n>code</span><span class=p>),</span><span class=n>sumMerge</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=w> </span><span class=k>from</span><span class=w> </span><span class=n>db_merge</span><span class=p>.</span><span class=n>t_merge_agg</span><span class=w> </span><span class=k>group</span><span class=w> </span><span class=k>by</span><span class=w> </span><span class=n>id</span><span class=p>,</span><span class=n>city</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=n>id</span><span class=err>──┬─</span><span class=n>city</span><span class=err>─────┬─</span><span class=n>uniqMerge</span><span class=p>(</span><span class=n>code</span><span class=p>)</span><span class=err>─┬─</span><span class=n>sumMerge</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=n>A01</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=n>shenzhen</span><span class=w> </span><span class=err>│</span><span class=w>               </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>             </span><span class=mi>300</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴──────────┴─────────────────┴─────────────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h2 id=collapsing-mergetree>Collapsing MergeTree</h2><p>包含 collapsing(摺疊) 邏輯的 MergeTree，這在 merge 時會將 sorting key 相同的資料依照摺疊算法將數據折疊，以此減少資料量提升後續的查詢效率。</p><p>以下為建立一個 CollapsingMergeTree</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>[</span><span class=k>IF</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>EXISTS</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=n>db</span><span class=p>.]</span><span class=k>table_name</span><span class=w> </span><span class=p>[</span><span class=k>ON</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=k>cluster</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name1</span><span class=w> </span><span class=p>[</span><span class=n>type1</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr1</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name2</span><span class=w> </span><span class=p>[</span><span class=n>type2</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr2</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>CollapsingMergeTree</span><span class=p>(</span><span class=n>sign</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SAMPLE</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SETTINGS</span><span class=w> </span><span class=n>name</span><span class=o>=</span><span class=n>value</span><span class=p>,</span><span class=w> </span><span class=p>...]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>相關參數：</p><ul><li>sign - 型態為 <code>Int8</code>，用來表示該 row 的狀態：<ul><li>1：表示該 row ，稱其為 <code>state</code> row。</li><li>-1：表示該 row ，稱其為 <code>cancel</code> row。</li></ul></li></ul><h3 id=摺疊算法>摺疊算法</h3><p>當 CH 合併數據時，會將具有相同 sorting key 的行減少到不超過 2 行，一個 state 一個 cancle，具體如何保留如下：</p><ul><li>如果 state = cancel 且最後一行是 state，則保留第一筆 cancel 和最後一筆 state 行。</li><li>如果 state > cancel ，則只保留最後一個 state 行。</li><li>如果 state &lt; cancel ，則只保留第一個 cancel 行。</li><li>其他情況，則不保留任何行。</li></ul><h3 id=範例-3>範例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>#</span><span class=w> </span><span class=err>建立一個</span><span class=w> </span><span class=n>CollapsingMergeTree</span><span class=w> </span><span class=k>table</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>UserID</span><span class=w> </span><span class=n>UInt64</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>PageViews</span><span class=w> </span><span class=n>UInt8</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Duration</span><span class=w> </span><span class=n>UInt8</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Sign</span><span class=w> </span><span class=nb>Int8</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>CollapsingMergeTree</span><span class=p>(</span><span class=n>Sign</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>UserID</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>塞入數據</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>4324182021466249494</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=mi>146</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>4324182021466249494</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=mi>146</span><span class=p>,</span><span class=w> </span><span class=o>-</span><span class=mi>1</span><span class=p>),(</span><span class=mi>4324182021466249494</span><span class=p>,</span><span class=w> </span><span class=mi>6</span><span class=p>,</span><span class=w> </span><span class=mi>185</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>查詢，因為還沒觸發</span><span class=w> </span><span class=n>merge</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌──────────────</span><span class=n>UserID</span><span class=err>─┬─</span><span class=n>PageViews</span><span class=err>─┬─</span><span class=n>Duration</span><span class=err>─┬─</span><span class=n>Sign</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>5</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>146</span><span class=w> </span><span class=err>│</span><span class=w>   </span><span class=o>-</span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>6</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>185</span><span class=w> </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>5</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>146</span><span class=w> </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┴───────────┴──────────┴──────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>建議使用以下查詢來確保查出來的數據經過摺疊</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>UserID</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>sum</span><span class=p>(</span><span class=n>PageViews</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>Sign</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>PageViews</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>sum</span><span class=p>(</span><span class=n>Duration</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>Sign</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>Duration</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>UserID</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>HAVING</span><span class=w> </span><span class=k>sum</span><span class=p>(</span><span class=n>Sign</span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌──────────────</span><span class=n>UserID</span><span class=err>─┬─</span><span class=n>PageViews</span><span class=err>─┬─</span><span class=n>Duration</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>6</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>185</span><span class=w> </span><span class=err>│</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┴───────────┴──────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>使用</span><span class=w> </span><span class=k>Final</span><span class=w> </span><span class=err>修飾符，查看</span><span class=w> </span><span class=n>merge</span><span class=w> </span><span class=err>後的結果</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>注意：不建議使用，非常消耗性能</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w> </span><span class=k>FINAL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌──────────────</span><span class=n>UserID</span><span class=err>─┬─</span><span class=n>PageViews</span><span class=err>─┬─</span><span class=n>Duration</span><span class=err>─┬─</span><span class=n>Sign</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>6</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>185</span><span class=w> </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┴───────────┴──────────┴──────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>強迫</span><span class=w> </span><span class=n>merge</span><span class=w> </span><span class=err>後查詢</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>optimize</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌──────────────</span><span class=n>UserID</span><span class=err>─┬─</span><span class=n>PageViews</span><span class=err>─┬─</span><span class=n>Duration</span><span class=err>─┬─</span><span class=n>Sign</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>6</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>185</span><span class=w> </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┴───────────┴──────────┴──────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><h3 id=注意事項>注意事項</h3><ol><li><p>同樣只有相同分區的資料才會在 merge 時摺疊</p></li><li><p>Collapsing MergeTree 嚴格要求數據按照先寫入 sign = 1 再寫入 sign = -1 的順序，否則數據無法摺疊：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>4324182021466249494</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=mi>146</span><span class=p>,</span><span class=w> </span><span class=o>-</span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>4324182021466249494</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=mi>146</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>optimize</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>test_db</span><span class=p>.</span><span class=n>UAct</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌──────────────</span><span class=n>UserID</span><span class=err>─┬─</span><span class=n>PageViews</span><span class=err>─┬─</span><span class=n>Duration</span><span class=err>─┬─</span><span class=n>Sign</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>5</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>146</span><span class=w> </span><span class=err>│</span><span class=w>   </span><span class=o>-</span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w> </span><span class=mi>4324182021466249494</span><span class=w> </span><span class=err>│</span><span class=w>         </span><span class=mi>5</span><span class=w> </span><span class=err>│</span><span class=w>      </span><span class=mi>146</span><span class=w> </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────────────────────┴───────────┴──────────┴──────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>如果數據是多線程寫入則不太容易控制順序，因此 Collapsing MergeTree 的摺疊機致無法順利運作，此時可以使用 CH 提供的 Versioned Collapsing MergeTree 來解決。</p></li></ol><h2 id=versioned-collapsing-mergetree>Versioned Collapsing MergeTree</h2><p>用途和 Collapsing MergeTree 相同，但使用不同的折疊算法，透過自定義的版本號來摺疊，因此不像 Collapsing MergeTree 受插入順序的影響。</p><p>以下為建立一個 Versioned Collapsing MergeTree 的語法：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=p>[</span><span class=k>IF</span><span class=w> </span><span class=k>NOT</span><span class=w> </span><span class=k>EXISTS</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=n>db</span><span class=p>.]</span><span class=k>table_name</span><span class=w> </span><span class=p>[</span><span class=k>ON</span><span class=w> </span><span class=k>CLUSTER</span><span class=w> </span><span class=k>cluster</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name1</span><span class=w> </span><span class=p>[</span><span class=n>type1</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr1</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>name2</span><span class=w> </span><span class=p>[</span><span class=n>type2</span><span class=p>]</span><span class=w> </span><span class=p>[</span><span class=k>DEFAULT</span><span class=o>|</span><span class=n>MATERIALIZED</span><span class=o>|</span><span class=k>ALIAS</span><span class=w> </span><span class=n>expr2</span><span class=p>],</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>...</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w> </span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>VersionedCollapsingMergeTree</span><span class=p>(</span><span class=n>sign</span><span class=p>,</span><span class=w> </span><span class=k>version</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>PARTITION</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SAMPLE</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=n>expr</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>[</span><span class=n>SETTINGS</span><span class=w> </span><span class=n>name</span><span class=o>=</span><span class=n>value</span><span class=p>,</span><span class=w> </span><span class=p>...]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>相關參數：</p><ul><li>sign - 型態為 <code>Int8</code>，用來表示該 row 的狀態：<ul><li>1：表示該 row ，稱其為 <code>state</code> row。</li><li>-1：表示該 row ，稱其為 <code>cancel</code> row。</li></ul></li><li>version - 型態為 <code>UInt*</code> ，用來指定為版本號的欄位。</li></ul><h3 id=範例-4>範例</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>CREATE</span><span class=w> </span><span class=k>TABLE</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>(</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=k>key</span><span class=o>`</span><span class=w> </span><span class=n>Int64</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>someCol</span><span class=o>`</span><span class=w> </span><span class=n>String</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=n>sign</span><span class=o>`</span><span class=w> </span><span class=nb>Int8</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=o>`</span><span class=k>version</span><span class=o>`</span><span class=w> </span><span class=n>UInt8</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>ENGINE</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>VersionedCollapsingMergeTree</span><span class=p>(</span><span class=n>sign</span><span class=p>,</span><span class=k>version</span><span class=p>)</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;first&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;second&#39;</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>2</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>INSERT</span><span class=w> </span><span class=k>INTO</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w> </span><span class=k>VALUES</span><span class=w> </span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=s1>&#39;first&#39;</span><span class=p>,</span><span class=w> </span><span class=o>-</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬─</span><span class=n>sign</span><span class=err>─┬─</span><span class=k>version</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>first</span><span class=w>   </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>       </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>       </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>first</span><span class=w>   </span><span class=err>│</span><span class=w>   </span><span class=o>-</span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>       </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴──────┴─────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>建議使用以下查詢來確保查出來的數據經過摺疊</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>key</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>sum</span><span class=p>(</span><span class=n>someCol</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>Sign</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>someCol</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>FROM</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>key</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>HAVING</span><span class=w> </span><span class=k>sum</span><span class=p>(</span><span class=n>Sign</span><span class=p>)</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=mi>0</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w> 
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>使用</span><span class=w> </span><span class=k>Final</span><span class=w> </span><span class=err>修飾符，查看</span><span class=w> </span><span class=n>merge</span><span class=w> </span><span class=err>後的結果</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>注意：不建議使用，非常消耗性能</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w> </span><span class=k>FINAL</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬─</span><span class=n>sign</span><span class=err>─┬─</span><span class=k>version</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>       </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴──────┴─────────┘</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=o>#</span><span class=w> </span><span class=err>強迫</span><span class=w> </span><span class=n>merge</span><span class=w> </span><span class=err>後查詢</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>optimize</span><span class=w> </span><span class=k>table</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=k>SELECT</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=k>FROM</span><span class=w> </span><span class=n>versioned_collapsing_test</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>┌─</span><span class=k>key</span><span class=err>─┬─</span><span class=n>someCol</span><span class=err>─┬─</span><span class=n>sign</span><span class=err>─┬─</span><span class=k>version</span><span class=err>─┐</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>│</span><span class=w>   </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w> </span><span class=k>second</span><span class=w>  </span><span class=err>│</span><span class=w>    </span><span class=mi>1</span><span class=w> </span><span class=err>│</span><span class=w>       </span><span class=mi>2</span><span class=w> </span><span class=err>│</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=err>└─────┴─────────┴──────┴─────────┘</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>注意事項</p><ol><li>Clickhouse 合併數據時會刪除每一對具有相同 primary key、version 以及不同 sign 的數據。</li><li>Clickhouse 會隱式的將 version 欄位添加到 primary key。</li></ol><h2 id=graphite-mergetree>Graphite MergeTree</h2><p>用於 aggregating/averaging (rollup) Graphite 數據而設計。</p><h2 id=參考>參考</h2><p><a class=link href=https://clickhouse.com/docs/en/engines/table-engines/mergetree-family/ target=_blank rel=noopener>MergeTree Engine Family | ClickHouse Docs</a></p><p><a class=link href=https://www.cnblogs.com/traditional/p/15218743.html target=_blank rel=noopener>ClickHouse 中最重要的表引擎：MergeTree 的深度原理解析 - 古明地盆 - 博客园 (cnblogs.com)</a></p><p><a class=link href=https://www.hnbian.cn/posts/78f0aac1.html#toc-heading-23 target=_blank rel=noopener>ClickHouse表引擎 1.MergeTree 建表方式与分区规则 | hnbian</a></p><p><a class=link href=http://www.hnbian.cn/posts/e6ed3197.html#toc-heading-22 target=_blank rel=noopener>ClickHouse表引擎 2.MergeTree 索引与数据存储方式 | hnbian</a></p><p><a class=link href=https://www.hnbian.cn/posts/f1dd16d2.html target=_blank rel=noopener>ClickHouse表引擎 5.MergeTree 家族其它引擎 | hnbian</a></p><p><a class=link href=https://bbs.huaweicloud.com/blogs/238417 target=_blank rel=noopener>MySQL到ClickHouse的高速公路-MaterializeMySQL引擎-云社区-华为云 (huaweicloud.com)</a></p></section><footer class=article-footer><section class=article-copyright><svg class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentcolor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><path d="M14.5 9a3.5 4 0 100 6"/></svg>
+<span>Licensed under CC BY-NC-SA 4.0</span></section></footer></article><aside class=related-content--wrapper><h2 class=section-title>相關文章</h2><div class=related-content><div class="flex article-list--tile"><article><a href=/p/clickhouse-materialized-mysql/><div class=article-details><h2 class=article-title>ClickHouse Materialized MySQL</h2></div></a></article><article><a href=/p/clickhouse-tpch-test/><div class=article-details><h2 class=article-title>ClickHouse TPC-H Test</h2></div></a></article><article><a href=/p/clickhouse-partition/><div class=article-details><h2 class=article-title>ClickHouse Partition</h2></div></a></article><article><a href=/p/clickhouse-storage-file/><div class=article-details><h2 class=article-title>ClickHouse 儲存結構</h2></div></a></article><article><a href=/p/clickhouse-index/><div class=article-details><h2 class=article-title>ClickHouse 索引</h2></div></a></article></div></div></aside><div class=disqus-container><div id=disqus_thread></div><script>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById("disqus_thread").innerHTML="Disqus comments not available by default when the website is previewed locally.";return}var t=document,e=t.createElement("script");e.async=!0,e.src="//小小 DBA 個人筆記.disqus.com/embed.js",e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><style>.disqus-container{background-color:var(--card-background);border-radius:var(--card-border-radius);box-shadow:var(--shadow-l1);padding:var(--card-padding)}</style><script>window.addEventListener("onColorSchemeChange",e=>{typeof DISQUS=="object"&&DISQUS.reset({reload:!0})})</script><footer class=site-footer><section class=copyright>&copy;
+2020 -
+2025 FuweaY</section><section class=powerby>使用 <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a> 建立<br>主題 <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=3.30.0>Stack</a></b> 由 <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a> 設計</section></footer><div class=pswp tabindex=-1 role=dialog aria-hidden=true><div class=pswp__bg></div><div class=pswp__scroll-wrap><div class=pswp__container><div class=pswp__item></div><div class=pswp__item></div><div class=pswp__item></div></div><div class="pswp__ui pswp__ui--hidden"><div class=pswp__top-bar><div class=pswp__counter></div><button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+<button class="pswp__button pswp__button--share" title=Share></button>
+<button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+<button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button><div class=pswp__preloader><div class=pswp__preloader__icn><div class=pswp__preloader__cut><div class=pswp__preloader__donut></div></div></div></div></div><div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap"><div class=pswp__share-tooltip></div></div><button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+</button>
+<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button><div class=pswp__caption><div class=pswp__caption__center></div></div></div></div></div><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo=" crossorigin=anonymous defer></script><script src=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU=" crossorigin=anonymous defer></script><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css crossorigin=anonymous></main></div><script src=https://cdn.jsdelivr.net/npm/node-vibrant@3.1.6/dist/vibrant.min.js integrity="sha256-awcR2jno4kI5X0zL8ex0vi2z+KMkF24hUW8WePSA9HM=" crossorigin=anonymous></script><script type=text/javascript src=/ts/main.1e9a3bafd846ced4c345d084b355fb8c7bae75701c338f8a1f8a82c780137826.js defer></script><script>(function(){const e=document.createElement("link");e.href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap",e.type="text/css",e.rel="stylesheet",document.head.appendChild(e)})()</script></body></html>
